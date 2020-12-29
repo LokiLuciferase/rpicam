@@ -1,40 +1,46 @@
-from typing import Optional, Union
+from typing import Optional, Union, List
 from datetime import datetime, timedelta
 from time import sleep, time
 from pathlib import Path
 import shutil
 from tempfile import TemporaryDirectory
 
-from picamera import PiCamera, Color
+from picamera import PiCamera
 import ffmpeg
 
 from rpicam.utils import get_logger
+from rpicam.timelapse.callbacks import ExecPoint, Callback, EchoCallback, AnnotateFrameWithDt
 
 
 class TimelapseCam:
 
     DEFAULT_SLEEP_DUR = 1  # sec
     TMPDIR_PREFIX = 'rpicam-timelapse-'
-    DT_OVERLAY_FMT = '%Y-%m-%dT%H:%M%S'
 
     def __init__(
         self,
-        *args,
         verbose: bool = False,
         tmpdir: Path = None,
         capture_failover_strategy: str = 'heal',
         camera_rotation: int = 180,
-        dt_overlay: bool = True,
+        callbacks: List[Callback] = None,
         # picamera settings
+        *args,
         **kwargs,
     ):
-        self._cam = PiCamera(*args, **kwargs)
-        self._cam.rotation = camera_rotation
+        self._callbacks = {}
+        for cb in callbacks:
+            self._callbacks.setdefault(cb.exec_at, []).append(cb)
+        for k, v in self._callbacks.items():
+            self._callbacks[k] = sorted(self._callbacks[k], key=lambda x: x.priority, reverse=True)
+
+        self._execute_callbacks(ExecPoint.BEFORE_INIT)
+        self.cam = PiCamera(*args, **kwargs)
+        self.cam.rotation = camera_rotation
         sleep(2)
         self._logger = get_logger(self.__class__.__name__, verb=verbose)
         self._capture_failover_strategy = capture_failover_strategy
-        self.latest_frame_file: Optional[Path] = None
-        self._do_dt_overlay = dt_overlay
+        self._latest_frame_file: Optional[Path] = None
         if tmpdir is None:
             self._tmpdir_holder = TemporaryDirectory(prefix=TimelapseCam.TMPDIR_PREFIX)
             self._tmpdir = Path(str(self._tmpdir_holder.name))
@@ -42,20 +48,30 @@ class TimelapseCam:
             self._tmpdir = Path(str(tmpdir))
 
     def __del__(self):
-        self._cam.close()
+        self.cam.close()
 
-    def _annotate_frame(self, text: str = None):
+    def _execute_callbacks(self, loc: ExecPoint, *args, **kwargs):
         """
-        Set or unset annotation of camera capture.
+        Run all callbacks associated with loc in order.
 
-        :param text: The text to set. If None, clear annnotations.
-        :param return:
+        :param loc: The execution point.
+        :param args: passed on to Callbacks for the given loc.
+        :param kwargs: passed on to Callbacks for the given loc.
+        :return:
         """
-        if text is not None:
-            self._cam.annotate_background = Color('black')
-        else:
-            self._cam.annotate_background = None
-        self._cam.annotate_text = text
+        if loc in self._callbacks:
+            for cb in self._callbacks[loc]:
+                cb(*args, **kwargs)
+
+    def _raise_with_callbacks(self, exc: Exception):
+        """
+        Raise the given exception after passing it through all Callbacks registered to run on error.
+
+        :param exc: The given exception.
+        :return:
+        """
+        self._execute_callbacks(ExecPoint.ON_EXCEPTION, exc=exc)
+        raise exc
 
     def _capture_frame(self, stack_dir: Path, *args, **kwargs):
         """
@@ -66,18 +82,17 @@ class TimelapseCam:
         :param kwargs: passed to PiCamera().capture()
         :return:
         """
-        now = datetime.now()
-        file_path = stack_dir / f'{now.timestamp()}.png'
-        if self._do_dt_overlay:
-            self._annotate_frame(text=now.strftime(TimelapseCam.DT_OVERLAY_FMT))
-        self._cam.capture(str(file_path), *args, **kwargs)
+        self._execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
+        file_path = stack_dir / f'{datetime.now().timestamp()}.png'
+        self.cam.capture(str(file_path), *args, **kwargs)
         if not file_path.is_file():
-            if self._capture_failover_strategy == 'heal' and self.latest_frame_file is not None:
-                shutil.copy(self.latest_frame_file, file_path)
+            if self._capture_failover_strategy == 'heal' and self._latest_frame_file is not None:
+                shutil.copy(self._latest_frame_file, file_path)
             elif self._capture_failover_strategy == 'skip':
                 pass
             elif self._capture_failover_strategy == 'raise':
-                raise RuntimeError(f'Could not capture frame: {file_path}')
+                self._raise_with_callbacks(RuntimeError(f'Could not capture frame: {file_path}'))
+        self._execute_callbacks(loc=ExecPoint.AFTER_FRAME_CAPTURE, cam=self.cam)
 
     def _record_stack(
         self,
@@ -99,16 +114,17 @@ class TimelapseCam:
         :param kwargs: passed to PiCamera().capture()
         :return:
         """
+        self._execute_callbacks(loc=ExecPoint.BEFORE_STACK_CAPTURE)
+        self._logger.info('Setting up timelapse imaging.')
         if duration is not None and t_end is not None:
             self._logger.warn('Ignoring `t_end` as `duration` was also supplied.')
         elif duration is None and t_end is None:
             missing_arg = 'Must supply either `duration` or `t_end` must be supplied.'
             self._logger.error(missing_arg)
-            raise RuntimeError(missing_arg)
+            self._raise_with_callbacks(RuntimeError(missing_arg))
         if duration is not None:
             t_end = t_start + duration
 
-        self._logger.info('Setting up timelapse imaging.')
         # sleep until starting
         while t_start > datetime.now():
             sleep(TimelapseCam.DEFAULT_SLEEP_DUR)
@@ -126,13 +142,16 @@ class TimelapseCam:
             capture_dur = t1 - t0
             sleeptime = sec_per_frame - capture_dur
             if sleeptime < 0:
-                raise RuntimeError(
-                    f'Cannot capture: sec_per_frame={sec_per_frame} '
-                    f'but processing frame took {capture_dur}!'
+                self._raise_with_callbacks(
+                    RuntimeError(
+                        f'Cannot capture: sec_per_frame={sec_per_frame} '
+                        f'but processing frame took {capture_dur}!'
+                    )
                 )
             sleep(sleeptime)
             now = datetime.now()
         self._logger.info('Finished timelapse imaging.')
+        self._execute_callbacks(loc=ExecPoint.AFTER_STACK_CAPTURE)
         return stack_dir
 
     def _convert_stack_to_video(self, stack_dir: Path, fps: int, outfile: Path = None) -> Path:
@@ -144,6 +163,7 @@ class TimelapseCam:
         :param outfile: The path at which to create the video. Optional, else created in stack_dir.
         :return: The path of the created video file.
         """
+        self._execute_callbacks(loc=ExecPoint.BEFORE_CONVERT, stack_dir=stack_dir)
         self._logger.info('Begin video conversion.')
         outfile = Path(str(outfile)) if outfile is not None else stack_dir / 'out.mp4'
         (
@@ -152,10 +172,13 @@ class TimelapseCam:
             .run(capture_stdout=False, capture_stderr=False)
         )
         if not outfile.is_file():
-            raise RuntimeError('Error during processing: output file not found.')
+            self._raise_with_callbacks(
+                RuntimeError('Error during processing: output file not found.')
+            )
         for f in stack_dir.glob('*.png'):
             f.unlink()
         self._logger.info('Finished video conversion.')
+        self._execute_callbacks(loc=ExecPoint.AFTER_CONVERT, outfile=outfile)
         return outfile
 
     def record(
@@ -194,5 +217,5 @@ class TimelapseCam:
 
 
 if __name__ == '__main__':
-    tc = TimelapseCam()
-    tc.record(fps=10, duration=timedelta(seconds=120), sec_per_frame=2, outfile='/home/pi/test.mp4')
+    tc = TimelapseCam(callbacks=[EchoCallback(), AnnotateFrameWithDt()])
+    tc.record(fps=10, duration=timedelta(seconds=60), sec_per_frame=2, outfile='/home/pi/test.mp4')
