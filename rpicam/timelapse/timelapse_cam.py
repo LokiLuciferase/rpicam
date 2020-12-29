@@ -8,8 +8,8 @@ from tempfile import TemporaryDirectory
 from picamera import PiCamera
 import ffmpeg
 
-from rpicam.utils import get_logger
-from rpicam.timelapse.callbacks import ExecPoint, Callback, EchoCallback, AnnotateFrameWithDt
+from rpicam.utils.logging import get_logger
+from rpicam.timelapse.callbacks import ExecPoint, Callback
 
 
 class TimelapseCam:
@@ -169,7 +169,7 @@ class TimelapseCam:
         (
             ffmpeg.input(f'{str(stack_dir)}/*.png', pattern_type='glob', framerate=fps)
             .output(str(outfile), pix_fmt='yuv420p')
-            .run(capture_stdout=False, capture_stderr=False)
+            .run(quiet=True)
         )
         if not outfile.is_file():
             self._raise_with_callbacks(
@@ -214,8 +214,3 @@ class TimelapseCam:
             **kwargs,
         )
         return self._convert_stack_to_video(stack_dir=stack_dir, fps=fps, outfile=outfile)
-
-
-if __name__ == '__main__':
-    tc = TimelapseCam(callbacks=[EchoCallback(), AnnotateFrameWithDt()])
-    tc.record(fps=10, duration=timedelta(seconds=60), sec_per_frame=2, outfile='/home/pi/test.mp4')

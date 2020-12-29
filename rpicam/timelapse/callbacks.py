@@ -3,7 +3,7 @@ from enum import Enum, auto
 
 from picamera import PiCamera, Color
 
-from rpicam.utils import get_logger
+from rpicam.utils.logging import get_logger
 
 
 class ExecPoint(Enum):
@@ -17,6 +17,7 @@ class ExecPoint(Enum):
     AFTER_RECORD = auto()
     BEFORE_CONVERT = auto()
     AFTER_CONVERT = auto()
+    ON_EXCEPTION = auto()
 
 
 class Callback:
@@ -41,6 +42,10 @@ class EchoCallback(Callback):
 
 
 class AnnotateFrameWithDt(Callback):
+    """
+    Annotates the captured PiCamera frame with the datetime in the given format.
+    """
+
     def __init__(self, fmt: str = '%Y-%m-%dT%H:%M%S'):
         super().__init__(exec_at=ExecPoint.BEFORE_FRAME_CAPTURE, priority=-999)
         self._fmt = fmt
