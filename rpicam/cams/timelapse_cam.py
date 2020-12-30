@@ -3,16 +3,14 @@ from datetime import datetime, timedelta
 from time import sleep, time
 from pathlib import Path
 import shutil
-from tempfile import TemporaryDirectory
 
-from picamera import PiCamera
 import ffmpeg
 
-from rpicam.utils.logging import get_logger
-from rpicam.timelapse.callbacks import ExecPoint, Callback
+from rpicam.cams.cam import Cam
+from rpicam.cams.callbacks import ExecPoint, Callback
 
 
-class TimelapseCam:
+class TimelapseCam(Cam):
 
     DEFAULT_SLEEP_DUR = 1  # sec
     TMPDIR_PREFIX = 'rpicam-timelapse-'
@@ -28,50 +26,16 @@ class TimelapseCam:
         *args,
         **kwargs,
     ):
-        self._callbacks = {}
-        for cb in callbacks:
-            self._callbacks.setdefault(cb.exec_at, []).append(cb)
-        for k, v in self._callbacks.items():
-            self._callbacks[k] = sorted(self._callbacks[k], key=lambda x: x.priority, reverse=True)
-
-        self._execute_callbacks(ExecPoint.BEFORE_INIT)
-        self.cam = PiCamera(*args, **kwargs)
-        self.cam.rotation = camera_rotation
-        sleep(2)
-        self._logger = get_logger(self.__class__.__name__, verb=verbose)
+        super().__init__(
+            verbose=verbose,
+            tmpdir=tmpdir,
+            camera_rotation=camera_rotation,
+            callbacks=callbacks,
+            *args,
+            **kwargs
+        )
         self._capture_failover_strategy = capture_failover_strategy
         self._latest_frame_file: Optional[Path] = None
-        if tmpdir is None:
-            self._tmpdir_holder = TemporaryDirectory(prefix=TimelapseCam.TMPDIR_PREFIX)
-            self._tmpdir = Path(str(self._tmpdir_holder.name))
-        else:
-            self._tmpdir = Path(str(tmpdir))
-
-    def __del__(self):
-        self.cam.close()
-
-    def _execute_callbacks(self, loc: ExecPoint, *args, **kwargs):
-        """
-        Run all callbacks associated with loc in order.
-
-        :param loc: The execution point.
-        :param args: passed on to Callbacks for the given loc.
-        :param kwargs: passed on to Callbacks for the given loc.
-        :return:
-        """
-        if loc in self._callbacks:
-            for cb in self._callbacks[loc]:
-                cb(*args, **kwargs)
-
-    def _raise_with_callbacks(self, exc: Exception):
-        """
-        Raise the given exception after passing it through all Callbacks registered to run on error.
-
-        :param exc: The given exception.
-        :return:
-        """
-        self._execute_callbacks(ExecPoint.ON_EXCEPTION, exc=exc)
-        raise exc
 
     def _capture_frame(self, stack_dir: Path, *args, **kwargs):
         """
@@ -191,7 +155,7 @@ class TimelapseCam:
         outfile: Union[Path, str] = None,
         *args,
         **kwargs,
-    ):
+    ) -> Path:
         """
         Records a timelapse video using picamera and ffmpeg.
 

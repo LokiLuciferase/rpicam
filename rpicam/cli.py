@@ -31,7 +31,7 @@ def cli(args=None):
 )
 def timelapse(duration, spf, fps, resolution, outfile):
     from datetime import timedelta
-    from rpicam.timelapse import TimelapseCam, AnnotateFrameWithDt
+    from rpicam.cams import TimelapseCam, AnnotateFrameWithDt
 
     tc = TimelapseCam(
         callbacks=[AnnotateFrameWithDt()],

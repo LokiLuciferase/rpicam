@@ -6,6 +6,8 @@ from picamera import PiCamera, Color
 from rpicam.utils.logging import get_logger
 
 
+
+
 class ExecPoint(Enum):
     BEFORE_INIT = auto()
     AFTER_INIT = auto()
