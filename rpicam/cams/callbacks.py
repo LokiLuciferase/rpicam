@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum, auto
+from time import sleep
 
 from picamera import PiCamera, Color
 
@@ -21,24 +22,12 @@ class ExecPoint(Enum):
 
 
 class Callback:
-    def __init__(self, exec_at: ExecPoint, priority: int = -1, verb: bool = False):
+    def __init__(self, exec_at: ExecPoint, priority: int = -1):
         self.exec_at = exec_at
         self.priority = priority
-        self._logger = get_logger(self.__class__.__name__, verb=verb)
 
     def __call__(self, *args, **kwargs):
         pass
-
-
-class EchoCallback(Callback):
-    def __init__(self):
-        super().__init__(exec_at=ExecPoint.BEFORE_INIT, priority=999, verb=True)
-
-    def __call__(self, *args, **kwargs):
-        self._logger.warn(
-            f'Running callback at {self.exec_at} with priority {self.priority}'
-            f' (args={args}, kwargs={kwargs})'
-        )
 
 
 class AnnotateFrameWithDt(Callback):
@@ -57,3 +46,23 @@ class AnnotateFrameWithDt(Callback):
         else:
             cam.annotate_background = None
             cam.annotate_text = None
+
+
+class ExecutionTimeout(Callback):
+    """
+    Delays Execution until self.blocked is False.
+    """
+
+    MESSAGE_ABOVE = 20
+
+    def __init__(self, exec_at: ExecPoint, timeout: float = 0.5, verbose: bool = False):
+        super().__init__(exec_at=exec_at, priority=1000)
+        self.timeout = timeout
+        self.blocked = False
+        self._logger = get_logger(self.__class__.__name__, verb=verbose)
+
+    def __call__(self):
+        while self.blocked:
+            if self.timeout >= self.MESSAGE_ABOVE:
+                self._logger.info(f'Execution blocked for {self.timeout} sec at {self.exec_at}.')
+            sleep(self.timeout)
