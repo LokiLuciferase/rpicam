@@ -11,7 +11,9 @@ class Platform:
 
     CAM_RES_POLL_TIMEOUT = 2
 
-    def __init__(self, cam: Cam, servos: Dict[Tuple[str, str], Servo] = None, verbose: bool = False):
+    def __init__(
+        self, cam: Cam, servos: Dict[Tuple[str, str], Servo] = None, verbose: bool = False
+    ):
         self.cam = cam
         self.servos = servos
         self._logger = get_logger(self.__class__.__name__, verb=verbose)

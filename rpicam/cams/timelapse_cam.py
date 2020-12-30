@@ -130,6 +130,8 @@ class TimelapseCam(Cam):
         self._execute_callbacks(loc=ExecPoint.BEFORE_CONVERT, stack_dir=stack_dir)
         self._logger.info('Begin video conversion.')
         outfile = Path(str(outfile)) if outfile is not None else stack_dir / 'out.mp4'
+        if outfile.is_file():
+            outfile.unlink()
         (
             ffmpeg.input(f'{str(stack_dir)}/*.png', pattern_type='glob', framerate=fps)
             .output(str(outfile), pix_fmt='yuv420p')
