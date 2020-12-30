@@ -30,7 +30,7 @@ class Cam(ABC):
         self,
         verbose: bool = False,
         tmpdir: Path = None,
-        callbacks: List[Callback] = None,
+        callbacks: List[Callback] = (),
         camera_rotation: int = 180,
         # picamera settings
         *args,

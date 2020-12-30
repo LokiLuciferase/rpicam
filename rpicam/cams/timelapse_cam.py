@@ -20,8 +20,8 @@ class TimelapseCam(Cam):
         verbose: bool = False,
         tmpdir: Path = None,
         capture_failover_strategy: str = 'heal',
-        camera_rotation: int = 180,
-        callbacks: List[Callback] = None,
+        camera_rotation: int = 0,
+        callbacks: List[Callback] = (),
         # picamera settings
         *args,
         **kwargs,

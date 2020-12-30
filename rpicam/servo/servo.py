@@ -106,10 +106,10 @@ class Servo:
             new_angle = self._calculate_new_angle(sense, angle)
         if not self.hacked and not 0 <= new_angle <= 180:
             raise RuntimeError('Invalid angle supplied.')
+        if self.angle == new_angle:
+            return
         if abs(self.angle - new_angle) < Servo.PRECISION_THRESHOLD_ANGLE:
-            self._logger.warning(
-                'Operation under precision threshold. Movement may be choppy/imprecise.'
-            )
+            self._logger.warning('Operation under precision threshold.')
         new_duty_cycle = self._angle_to_duty_cycle(new_angle)
         self._logger.info(f'Move: {self.angle}° ==> {new_angle}°')
         self._pwm.ChangeDutyCycle(new_duty_cycle)
