@@ -23,9 +23,11 @@ class ServoOp(NamedTuple):
     sleep: float = 0.0
 
 
+cw = ServoOp(30, 'CW')
+ccw = ServoOp(30, 'CCW')
 full_cw = ServoOp(sense='CW')
 full_ccw = ServoOp(sense='CCW')
-noon = ServoOp(angle=90)
+noon = ServoOp(90)
 pause = ServoOp(sleep=1)
 
 
@@ -113,22 +115,34 @@ class Servo:
         self._pwm.ChangeDutyCycle(new_duty_cycle)
         time.sleep(0.7)  # mandatory to allow operation
         self._pwm.ChangeDutyCycle(0)
-        self.angle = new_angle % 180
+        self.angle = new_angle % 181
         if sleep:
             time.sleep(sleep)
 
     def run_servo_op(self, servo_op: ServoOp):
         self._run_servo_op(*servo_op)
 
-    def execute_sequence(self, sequence: List[ServoOp]):
+    def execute_sequence(self, sequence: List[ServoOp], cycle: bool = False):
         """
         Execute a sequence of `ServoOp`s.
 
         :param sequence: A list of `ServoOp`s to execute.
+        :param cycle: Whether to run the given sequence in a cycle
+                      until recieving a KeyboardInterupt.
+                      If so, returns to starting angle each time.
         :return:
         """
-        for tup in sequence:
-            self.run_servo_op(tup)
+        try:
+            starting_angle = self.angle
+            while True:
+                for tup in sequence:
+                    self.run_servo_op(tup)
+                if cycle:
+                    self._run_servo_op(starting_angle)
+                else:
+                    break
+        except KeyboardInterrupt:
+            pass
 
 
 if __name__ == '__main__':

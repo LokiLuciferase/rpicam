@@ -2,7 +2,7 @@ from typing import List
 from time import sleep
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from abc import ABC ,abstractmethod
+from abc import ABC, abstractmethod
 
 from picamera import PiCamera
 

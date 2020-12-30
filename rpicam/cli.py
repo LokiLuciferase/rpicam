@@ -47,6 +47,21 @@ def timelapse(duration, spf, fps, resolution, outfile):
     )
 
 
+@cli.command('servo', short_help='Move a servo using pre-defined commands.')
+@click.option('-p', '--pin', type=int, help='The BOARD pin connected to the servo.')
+@click.option('-c', '--cycle', is_flag=True, help='Whether to cycle the given command sequence.')
+@click.argument(
+    'ops', type=click.Choice(['pause', 'cw', 'ccw', 'noon', 'full_ccw', 'full_cw']), nargs=-1
+)
+def servo(ops, pin, cycle):
+    from rpicam.servo import Servo, pause, full_ccw, full_cw, cw, ccw
+
+    ops_map = {'pause': pause, 'full_cw': full_cw, 'full_ccw': full_ccw, 'cw': cw, 'ccw': ccw}
+    ops = [ops_map[x] for x in ops if x in ops_map]
+    s = Servo(pin, verbose=True)
+    s.execute_sequence(ops, cycle=cycle)
+
+
 def main():
     cli()
 

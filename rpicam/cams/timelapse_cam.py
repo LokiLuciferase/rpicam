@@ -32,7 +32,7 @@ class TimelapseCam(Cam):
             camera_rotation=camera_rotation,
             callbacks=callbacks,
             *args,
-            **kwargs
+            **kwargs,
         )
         self._capture_failover_strategy = capture_failover_strategy
         self._latest_frame_file: Optional[Path] = None

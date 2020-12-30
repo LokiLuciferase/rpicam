@@ -1,1 +1,1 @@
-from .servo import ServoOp, Servo, full_ccw, full_cw, noon, pause
+from .servo import ServoOp, Servo, full_ccw, full_cw, cw, ccw, noon, pause
