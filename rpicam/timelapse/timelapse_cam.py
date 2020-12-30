@@ -145,7 +145,7 @@ class TimelapseCam:
                 self._raise_with_callbacks(
                     RuntimeError(
                         f'Cannot capture: sec_per_frame={sec_per_frame} '
-                        f'but processing frame took {capture_dur}!'
+                        f'but processing frame took {round(capture_dur, 5)} sec.'
                     )
                 )
             sleep(sleeptime)
