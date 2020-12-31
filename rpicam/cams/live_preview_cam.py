@@ -6,7 +6,7 @@ from PIL import Image
 
 from rpicam.cams.cam import Cam
 from rpicam.cams.callbacks import ExecPoint
-from rpicam.utils.viewer import Viewer
+from rpicam.gui.viewer import Viewer
 
 
 class LivePreviewCam(Cam):
