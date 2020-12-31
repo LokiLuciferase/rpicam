@@ -1,34 +1,12 @@
-from typing import List, NamedTuple
+from typing import List
 import time
 import RPi.GPIO as GPIO
+
+from rpicam.servo.servo_ops import ServoOp, full_cw, full_ccw, noon, pause
 from rpicam.utils.logging_utils import get_logger
 
 
 GPIO.setmode(GPIO.BOARD)
-
-
-class ServoOp(NamedTuple):
-    """
-    Encapsulates a Servo operation.
-
-    :param angle: The angle - absolute if no sense supplied, else relative to existing angle.
-                  If not supplied, assume "all the way" in the supplied sense.
-    :param sense: The sense to use for changing the existing angle - 'CW' or 'CCW'.
-                  If not supplied, assume absolute angle.
-    :param sleep: How many seconds to sleep after executing the op.
-    """
-
-    angle: int = None
-    sense: str = None
-    sleep: float = 0.0
-
-
-cw = ServoOp(30, 'CW')
-ccw = ServoOp(30, 'CCW')
-full_cw = ServoOp(sense='CW')
-full_ccw = ServoOp(sense='CCW')
-noon = ServoOp(90)
-pause = ServoOp(sleep=1)
 
 
 class Servo:
