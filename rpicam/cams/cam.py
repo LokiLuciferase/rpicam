@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 from picamera import PiCamera
 
-from rpicam.utils.logging import get_logger
+from rpicam.utils.logging_utils import get_logger
 from rpicam.cams.callbacks import ExecPoint, Callback
 
 

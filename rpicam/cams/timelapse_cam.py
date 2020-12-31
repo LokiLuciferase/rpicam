@@ -36,6 +36,7 @@ class TimelapseCam(Cam):
         )
         self._capture_failover_strategy = capture_failover_strategy
         self._latest_frame_file: Optional[Path] = None
+        self._execute_callbacks(loc=ExecPoint.AFTER_INIT)
 
     def _capture_frame(self, stack_dir: Path, *args, **kwargs):
         """
@@ -171,6 +172,7 @@ class TimelapseCam(Cam):
         :param kwargs: passed to PiCamera().capture()
         :return: The path to the created video file.
         """
+        self._execute_callbacks(loc=ExecPoint.BEFORE_RECORD)
         stack_dir = self._record_stack(
             sec_per_frame=sec_per_frame,
             t_start=t_start,
@@ -179,4 +181,6 @@ class TimelapseCam(Cam):
             *args,
             **kwargs,
         )
-        return self._convert_stack_to_video(stack_dir=stack_dir, fps=fps, outfile=outfile)
+        ret = self._convert_stack_to_video(stack_dir=stack_dir, fps=fps, outfile=outfile)
+        self._execute_callbacks(loc=ExecPoint.AFTER_RECORD, ret=ret)
+        return ret

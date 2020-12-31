@@ -4,7 +4,7 @@ from time import sleep
 
 from picamera import PiCamera, Color
 
-from rpicam.utils.logging import get_logger
+from rpicam.utils.logging_utils import get_logger
 
 
 class ExecPoint(Enum):

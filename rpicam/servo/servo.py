@@ -1,7 +1,7 @@
 from typing import List, NamedTuple
 import time
 import RPi.GPIO as GPIO
-from rpicam.utils.logging import get_logger
+from rpicam.utils.logging_utils import get_logger
 
 
 GPIO.setmode(GPIO.BOARD)

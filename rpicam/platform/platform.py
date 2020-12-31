@@ -4,7 +4,7 @@ from threading import Thread
 
 from rpicam.cams.cam import Cam
 from rpicam.servo.servo import Servo
-from rpicam.utils.logging import get_logger
+from rpicam.utils.logging_utils import get_logger
 
 
 class Platform:
@@ -12,7 +12,10 @@ class Platform:
     CAM_RES_POLL_TIMEOUT = 2
 
     def __init__(
-        self, cam: Cam, servos: Dict[Tuple[str, str], Servo] = None, verbose: bool = False
+        self,
+        cam: Cam,
+        servos: Dict[Tuple[str, str], Servo] = None,
+        verbose: bool = False
     ):
         self.cam = cam
         self.servos = servos
