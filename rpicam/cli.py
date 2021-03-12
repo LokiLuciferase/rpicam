@@ -8,6 +8,17 @@ def cli(args=None):
     pass
 
 
+@cli.command('live', short_help='Display a live video stream.')
+@click.option('-s', '--spf', type=float, default=0.5, help='Seconds per frame.')
+def live(spf):
+    from rpicam.cams import LivePreviewCam
+    try:
+        lpc = LivePreviewCam()
+        lpc.record(spf=spf)
+    except KeyboardInterrupt:
+        pass
+
+
 @cli.command('timelapse', short_help='Create a timelapse video.')
 @click.option(
     '-d', '--duration', type=int, default=120, help='The total recording duration in min.'
