@@ -19,7 +19,7 @@ class TimelapseCam(Cam):
         self,
         verbose: bool = False,
         tmpdir: Path = None,
-        capture_failover_strategy: str = 'heal',
+        capture_failover_strategy: str = 'skip',
         camera_rotation: int = 0,
         callbacks: List[Callback] = (),
         # picamera settings
@@ -184,3 +184,4 @@ class TimelapseCam(Cam):
         ret = self._convert_stack_to_video(stack_dir=stack_dir, fps=fps, outfile=outfile)
         self._execute_callbacks(loc=ExecPoint.AFTER_RECORD, ret=ret)
         return ret
+
