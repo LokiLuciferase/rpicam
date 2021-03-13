@@ -59,7 +59,7 @@ def timelapse(duration, spf, fps, resolution, outfile):
 
 
 @cli.command('servo', short_help='Move a servo using pre-defined commands.')
-@click.option('-p', '--pin', type=int, help='The BOARD pin connected to the servo.')
+@click.option('-p', '--pin', type=int, default=7, help='The BOARD pin connected to the servo.')
 @click.option('-c', '--cycle', is_flag=True, help='Whether to cycle the given command sequence.')
 @click.argument(
     'ops', type=click.Choice(['pause', 'cw', 'ccw', 'noon', 'full_ccw', 'full_cw']), nargs=-1
