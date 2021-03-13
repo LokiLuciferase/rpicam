@@ -13,6 +13,7 @@ from rpicam.cams.callbacks import ExecPoint, Callback
 class TimelapseCam(Cam):
 
     DEFAULT_SLEEP_DUR = 1  # sec
+    MAX_CONSEQ_OVERTIME_TIL_ERR = 3
     TMPDIR_PREFIX = 'rpicam-timelapse-'
 
     def __init__(
@@ -37,6 +38,7 @@ class TimelapseCam(Cam):
         self._capture_failover_strategy = capture_failover_strategy
         self._latest_frame_file: Optional[Path] = None
         self._execute_callbacks(loc=ExecPoint.AFTER_INIT)
+        self._conseq_overtime_count = 0
 
     def _capture_frame(self, stack_dir: Path, *args, **kwargs):
         """
@@ -107,13 +109,18 @@ class TimelapseCam(Cam):
             capture_dur = t1 - t0
             sleeptime = sec_per_frame - capture_dur
             if sleeptime < 0:
-                self._raise_with_callbacks(
-                    RuntimeError(
-                        f'Cannot capture: sec_per_frame={sec_per_frame} '
-                        f'but processing frame took {round(capture_dur, 5)} sec.'
-                    )
-                )
-            sleep(sleeptime)
+                overtime_err = f'Cannot capture: sec_per_frame={sec_per_frame}' \
+                f' but processing frame took {round(capture_dur, 3)} sec.'
+
+                if self._conseq_overtime_count >= TimelapseCam.MAX_CONSEQ_OVERTIME_TIL_ERR:
+                    self._raise_with_callbacks(RuntimeError(overtime_err))
+                else:
+                    self._logger.warning(overtime_err)
+                    self._conseq_overtime_count += 1
+                if sleeptime > 0:
+                    sleep(sleeptime)
+            else:
+                self._conseq_overtime_count = 0
             now = datetime.now()
         self._logger.info('Finished timelapse imaging.')
         self._execute_callbacks(loc=ExecPoint.AFTER_STACK_CAPTURE)
