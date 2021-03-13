@@ -109,8 +109,8 @@ class TimelapseCam(Cam):
             capture_dur = t1 - t0
             sleeptime = sec_per_frame - capture_dur
             if sleeptime < 0:
-                overtime_err = f'Cannot capture: sec_per_frame={sec_per_frame}' \
-                f' but processing frame took {round(capture_dur, 3)} sec.'
+                overtime_err = f'sec_per_frame={sec_per_frame}' \
+                f' but processing frame took {round(capture_dur, 2)} sec.'
 
                 if self._conseq_overtime_count >= TimelapseCam.MAX_CONSEQ_OVERTIME_TIL_ERR:
                     self._raise_with_callbacks(RuntimeError(overtime_err))
