@@ -20,10 +20,12 @@ class Servo:
         verbose: bool = False,
         servo_name: str = None,
         hacked: bool = False,
+        on_invalid_angle: str = 'raise',
     ):
         self.pin = board_pin
         self.angle = None
         self.hacked = hacked
+        self._on_invalid_angle = on_invalid_angle
         self._servo_name = f'({servo_name})' if servo_name is not None else ''
         self._logger = get_logger(f'{self.__class__.__name__}{self._servo_name}', verb=verbose)
         GPIO.setup(self.pin, GPIO.OUT)
@@ -89,7 +91,14 @@ class Servo:
         else:
             new_angle = self._calculate_new_angle(sense, angle)
         if not self.hacked and not 0 <= new_angle <= 180:
-            raise RuntimeError('Invalid angle supplied.')
+            invalid_angle_mess = f'Invalid angle supplied: {new_angle}'
+            if self._on_invalid_angle == 'raise':
+                raise RuntimeError(invalid_angle_mess)
+            elif self._on_invalid_angle == 'warn':
+                self._logger.warning(invalid_angle_mess)
+            elif self._on_invalid_angle == 'ignore':
+                pass
+            return
         if self.angle == new_angle:
             return
         if abs(self.angle - new_angle) < Servo.PRECISION_THRESHOLD_ANGLE:

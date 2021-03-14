@@ -26,10 +26,10 @@ def get_char_keyboard_nonblock():
 
     return c
 
+
 if __name__ == '__main__':
     while True:
         sleep(0.01)
         c = get_char_keyboard_nonblock()
         if c:
             print(f'Supplied char: {c}')
-

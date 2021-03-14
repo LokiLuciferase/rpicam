@@ -55,17 +55,23 @@ def live(spf, servo_pin_ad, servo_pin_ws):
     try:
         lpc = LivePreviewCam()
         lpc_args = dict(spf=spf)
-        servos = dict(servo_ad=Servo(servo_pin_ad, verbose=True, servo_name='A/D'))
+        servos = dict(
+            servo_ad=Servo(servo_pin_ad, verbose=True, servo_name='A/D', on_invalid_angle='ignore')
+        )
         if servo_pin_ws:
             servo_name_ws = 'servo_ws'
-            servos[servo_name_ws] = Servo(servo_pin_ws, verbose=True, servo_name='W/S')
+            servos[servo_name_ws] = Servo(
+                servo_pin_ws, verbose=True, servo_name='W/S', on_invalid_angle='ignore'
+            )
         else:
             servo_name_ws = None
         p = Platform(cam=lpc, servos=servos, verbose=True)
         p.start_recording(**lpc_args)
         while True:
             sleep(0.01)
-            wasd = ServoOpParser.interpret_wasd(servo_name_ad='servo_ad', servo_name_ws=servo_name_ws)
+            wasd = ServoOpParser.interpret_wasd(
+                servo_name_ad='servo_ad', servo_name_ws=servo_name_ws
+            )
             if wasd is not None:
                 p.submit_servo_sequence(wasd[0], [wasd[1]])
 
@@ -152,4 +158,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

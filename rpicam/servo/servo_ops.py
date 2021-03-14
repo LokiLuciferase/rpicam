@@ -29,7 +29,9 @@ pause = ServoOp(sleep=1)
 
 class ServoOpParser:
     @staticmethod
-    def interpret_wasd(servo_name_ad: str, servo_name_ws: str = None) -> Optional[Tuple[str, ServoOp]]:
+    def interpret_wasd(
+        servo_name_ad: str, servo_name_ws: str = None
+    ) -> Optional[Tuple[str, ServoOp]]:
         """
         Get a char from keyboard input, and emit the corresponding servo name and ServoOp.
 
@@ -79,4 +81,3 @@ class ServoOpParser:
                 raise RuntimeError(f'Unknown parametrized ServoOp name: {smatch}')
         else:
             raise RuntimeError(f'Could not parse ServoOp: {s}')
-
