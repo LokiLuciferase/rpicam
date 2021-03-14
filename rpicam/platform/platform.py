@@ -38,8 +38,9 @@ class Platform:
         self._cam_out_q.join()
 
     def _cam_worker(self):
-        while True:
-            args, kwargs = self._cam_in_q.get()
+        keep_alive = True
+        while keep_alive:
+            args, kwargs, keep_alive = self._cam_in_q.get()
             self._logger.info(f'Starting recording: args={args}, kwargs={kwargs}')
             res = self.cam.record(*args, **kwargs)
             self._logger.info('Recording done.')
@@ -59,9 +60,26 @@ class Platform:
             except Empty:
                 pass
 
-    def start_recording(self, *args, **kwargs):
-        self._cam_in_q.put((args, kwargs))
+    def start_recording(self, keep_alive: bool = False, *args, **kwargs):
+        """
+        Start recording on `self.cam` with the given arguments.
+
+        :param keep_alive: Whether to keep the camera thread alive after this
+                           recording concludes. This prevents the main thread
+                           from exiting.
+        :param args: arguments passed on to `self.cam.record()`
+        :param kwargs: keyword arguments passed on to `self.cam.record()`
+        """
+        self._cam_in_q.put((args, kwargs, keep_alive))
 
     def submit_servo_sequence(self, servo_name: Tuple[str, str], *args, **kwargs):
+        """
+        Submit a servo operation sequence to the servo with name `servo_name`.
+        Execution will terminate after the cam worker thread is ended.
+
+        :param servo_name: The name of the servo as given in `self.servos`.
+        :param args: arguments passed on to the `execute_sequence` function of the requested servo.
+        :param kwargs: keyword arguments passed on the the `execute_sequence` function of the requested servo.
+        """
         self._servo_in_qs[servo_name].put((args, kwargs))
 

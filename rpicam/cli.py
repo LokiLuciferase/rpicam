@@ -113,6 +113,7 @@ def timelapse(duration, spf, fps, resolution, outfile, servo_ops, servo_pin, cyc
         p = Platform(cam=cam, servos={'s': servo}, verbose=True)
         p.start_recording(**cam_args)
         p.submit_servo_sequence(servo_name='s', sequence=servo_ops, cycle=cycle_servo_ops)
+        p.poll_cam_result()
     else:
         cam.record(**cam_args)
 
