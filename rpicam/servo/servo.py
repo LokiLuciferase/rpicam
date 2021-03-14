@@ -14,12 +14,13 @@ class Servo:
     PRECISION_THRESHOLD_ANGLE = 20
 
     def __init__(
-        self, board_pin: int, freq: float = 50, verbose: bool = False, hacked: bool = False
+        self, board_pin: int, freq: float = 50, verbose: bool = False, servo_name: str = None, hacked: bool = False
     ):
         self.pin = board_pin
         self.angle = None
         self.hacked = hacked
-        self._logger = get_logger(self.__class__.__name__, verb=verbose)
+        self._servo_name = f'({servo_name})' if servo_name is not None else ''
+        self._logger = get_logger(f'{self.__class__.__name__}{self._servo_name}', verb=verbose)
         GPIO.setup(self.pin, GPIO.OUT)
         self._pwm = GPIO.PWM(self.pin, freq)
         self._initialize_servo_pos()

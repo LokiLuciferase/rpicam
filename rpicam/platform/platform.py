@@ -1,6 +1,7 @@
 from typing import Dict, Tuple
 from queue import Queue, Empty
 from threading import Thread
+from time import sleep
 
 from rpicam.cams.cam import Cam
 from rpicam.servo.servo import Servo
@@ -24,6 +25,7 @@ class Platform:
         self._cam_out_q = Queue()
         self._servo_in_qs = {k: Queue() for k in self.servos.keys()}
         Thread(target=self._cam_worker, daemon=True).start()
+        sleep(Platform.CAM_RES_POLL_TIMEOUT)  # initial sleep for cam setup before servos start
         for sn in self.servos.keys():
             Thread(target=self._servo_worker, kwargs=dict(servo_name=sn), daemon=True).start()
 
@@ -46,11 +48,12 @@ class Platform:
             self.servos[servo_name].execute_sequence(*args, **kwargs)
             self._servo_in_qs[servo_name].task_done()
 
-    def _poll_cam_result(self):
-        try:
-            return self._cam_out_q.get(timeout=self.CAM_RES_POLL_TIMEOUT)
-        except Empty:
-            return None
+    def poll_cam_result(self):
+        while True:
+            try:
+                return self._cam_out_q.get(timeout=self.CAM_RES_POLL_TIMEOUT)
+            except Empty:
+                pass
 
     def start_recording(self, *args, **kwargs):
         self._cam_in_q.put((args, kwargs))
