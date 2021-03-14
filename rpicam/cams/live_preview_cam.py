@@ -14,6 +14,7 @@ class LivePreviewCam(Cam):
     """
     Cam for producing a live stream in a GUI window.
     """
+
     def __init__(self, camera_rotation: int = 0, *args, **kwargs):
         super().__init__(camera_rotation=camera_rotation, *args, **kwargs)
         self._viewer = Viewer()
@@ -63,7 +64,7 @@ class LivePreviewCam(Cam):
             target=self._frame_producer,
             args=args,
             kwargs={'event': event, 'spf': spf, **kwargs},
-            daemon=True
+            daemon=True,
         ).start()
         self._viewer.view_image_queue(self._img_queue)
         event.set()

@@ -19,7 +19,14 @@ class ServoOp(NamedTuple):
 
 
 def parse_servo_op(s: str) -> ServoOp:
-    ops_map = {'pause': pause, 'noon': noon, 'full_cw': full_cw, 'full_ccw': full_ccw, 'cw': cw, 'ccw': ccw}
+    ops_map = {
+        'pause': pause,
+        'noon': noon,
+        'full_cw': full_cw,
+        'full_ccw': full_ccw,
+        'cw': cw,
+        'ccw': ccw,
+    }
     if s in ops_map:
         return ops_map[s]
     elif re.match('\w+\(\d+\)', s):
@@ -44,4 +51,3 @@ full_cw = ServoOp(sense='CW')
 full_ccw = ServoOp(sense='CCW')
 noon = ServoOp(90)
 pause = ServoOp(sleep=1)
-

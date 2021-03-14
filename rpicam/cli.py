@@ -3,12 +3,16 @@ import sys
 import click
 
 
-@click.group(short_help='Servo controls.', context_settings=dict(help_option_names=["-h", "--help"]))
+@click.group(
+    short_help='Servo controls.', context_settings=dict(help_option_names=["-h", "--help"])
+)
 def servo(args=None):
     pass
 
 
-@click.group(short_help='Recording functions.', context_settings=dict(help_option_names=["-h", "--help"]))
+@click.group(
+    short_help='Recording functions.', context_settings=dict(help_option_names=["-h", "--help"])
+)
 def cam(args=None):
     pass
 
@@ -25,9 +29,7 @@ cli.add_command(servo)
 @servo.command('move', short_help='Move a servo using pre-defined commands.')
 @click.option('-p', '--pin', type=int, default=7, help='The BOARD pin connected to the servo.')
 @click.option('-c', '--cycle', is_flag=True, help='Whether to cycle the given command sequence.')
-@click.argument(
-    'ops', type=str, nargs=-1
-)
+@click.argument('ops', type=str, nargs=-1)
 def move(ops, pin, cycle):
     from rpicam.servo import Servo, parse_servo_op
 
@@ -40,6 +42,7 @@ def move(ops, pin, cycle):
 @click.option('-s', '--spf', type=float, default=0.5, help='Seconds per frame.')
 def live(spf):
     from rpicam.cams import LivePreviewCam
+
     try:
         lpc = LivePreviewCam()
         lpc.record(spf=spf)
@@ -72,18 +75,18 @@ def live(spf):
     '--servo_ops',
     type=str,
     default=None,
-    help='A space-delimited string of servo operations to perform during timelapse recording. Optional.'
+    help='A space-delimited string of servo operations to perform during timelapse recording. Optional.',
 )
 @click.option(
     '--servo_pin',
     type=int,
     default=7,
-    help='The pin on which the servo is connected. Only required if servo_ops are supplied.'
+    help='The pin on which the servo is connected. Only required if servo_ops are supplied.',
 )
 @click.option(
     '--cycle_servo_ops',
     is_flag=True,
-    help='Whether to cycle the given servo operations during timelapse recording.'
+    help='Whether to cycle the given servo operations during timelapse recording.',
 )
 def timelapse(duration, spf, fps, resolution, outfile, servo_ops, servo_pin, cycle_servo_ops):
     from datetime import timedelta
@@ -107,7 +110,9 @@ def timelapse(duration, spf, fps, resolution, outfile, servo_ops, servo_pin, cyc
     if servo_ops:
         servo = Servo(servo_pin, verbose=True)
         servo_ops = servo_ops.split(' ')
-        servo._logger.info(f'Will execute sequence: {servo_ops}{", cycling" if cycle_servo_ops else ""}')
+        servo._logger.info(
+            f'Will execute sequence: {servo_ops}{", cycling" if cycle_servo_ops else ""}'
+        )
         servo_ops = [parse_servo_op(x) for x in servo_ops]
 
         p = Platform(cam=cam, servos={'s': servo}, verbose=True)
@@ -116,7 +121,6 @@ def timelapse(duration, spf, fps, resolution, outfile, servo_ops, servo_pin, cyc
         p.poll_cam_result()
     else:
         cam.record(**cam_args)
-
 
 
 def main():

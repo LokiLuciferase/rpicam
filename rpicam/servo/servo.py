@@ -14,7 +14,12 @@ class Servo:
     PRECISION_THRESHOLD_ANGLE = 20
 
     def __init__(
-        self, board_pin: int, freq: float = 50, verbose: bool = False, servo_name: str = None, hacked: bool = False
+        self,
+        board_pin: int,
+        freq: float = 50,
+        verbose: bool = False,
+        servo_name: str = None,
+        hacked: bool = False,
     ):
         self.pin = board_pin
         self.angle = None

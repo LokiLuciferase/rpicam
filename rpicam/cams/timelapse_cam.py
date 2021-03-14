@@ -109,8 +109,9 @@ class TimelapseCam(Cam):
             capture_dur = t1 - t0
             sleeptime = sec_per_frame - capture_dur
             if sleeptime < 0:
-                overtime_err = f'sec_per_frame={sec_per_frame}' \
-                f' but frame took {round(capture_dur, 2)} sec.'
+                overtime_err = (
+                    f'sec_per_frame={sec_per_frame} but frame took {round(capture_dur, 2)} sec.'
+                )
 
                 if self._conseq_overtime_count >= TimelapseCam.MAX_CONSEQ_OVERTIME_TIL_ERR:
                     self._raise_with_callbacks(RuntimeError(overtime_err))
@@ -191,4 +192,3 @@ class TimelapseCam(Cam):
         ret = self._convert_stack_to_video(stack_dir=stack_dir, fps=fps, outfile=outfile)
         self._execute_callbacks(loc=ExecPoint.AFTER_RECORD, ret=ret)
         return ret
-

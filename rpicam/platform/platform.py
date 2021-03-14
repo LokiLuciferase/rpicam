@@ -13,10 +13,7 @@ class Platform:
     CAM_RES_POLL_TIMEOUT = 2
 
     def __init__(
-        self,
-        cam: Cam,
-        servos: Dict[Tuple[str, str], Servo] = None,
-        verbose: bool = False
+        self, cam: Cam, servos: Dict[Tuple[str, str], Servo] = None, verbose: bool = False
     ):
         self.cam = cam
         self.servos = servos
@@ -25,7 +22,10 @@ class Platform:
         self._cam_out_q = Queue()
         self._servo_in_qs = {k: Queue() for k in self.servos.keys()}
         self._cam_thread = Thread(target=self._cam_worker, name='cam_worker', daemon=False)
-        self._servo_threads = [Thread(target=self._servo_worker, kwargs=dict(servo_name=sn), daemon=True) for sn in self.servos.keys()]
+        self._servo_threads = [
+            Thread(target=self._servo_worker, kwargs=dict(servo_name=sn), daemon=True)
+            for sn in self.servos.keys()
+        ]
 
         self._cam_thread.start()
         sleep(Platform.CAM_RES_POLL_TIMEOUT)  # initial sleep for cam setup before servos start
@@ -82,4 +82,3 @@ class Platform:
         :param kwargs: keyword arguments passed on the the `execute_sequence` function of the requested servo.
         """
         self._servo_in_qs[servo_name].put((args, kwargs))
-
