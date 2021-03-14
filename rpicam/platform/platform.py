@@ -24,10 +24,14 @@ class Platform:
         self._cam_in_q = Queue()
         self._cam_out_q = Queue()
         self._servo_in_qs = {k: Queue() for k in self.servos.keys()}
-        Thread(target=self._cam_worker, daemon=True).start()
+        self._cam_thread = Thread(target=self._cam_worker, name='cam_worker', daemon=False)
+        self._servo_threads = [Thread(target=self._servo_worker, kwargs=dict(servo_name=sn), daemon=True) for sn in self.servos.keys()]
+
+        self._cam_thread.start()
         sleep(Platform.CAM_RES_POLL_TIMEOUT)  # initial sleep for cam setup before servos start
-        for sn in self.servos.keys():
-            Thread(target=self._servo_worker, kwargs=dict(servo_name=sn), daemon=True).start()
+
+        for st in self._servo_threads:
+            st.start()
 
     def __del__(self):
         self._cam_in_q.join()
@@ -60,3 +64,4 @@ class Platform:
 
     def submit_servo_sequence(self, servo_name: Tuple[str, str], *args, **kwargs):
         self._servo_in_qs[servo_name].put((args, kwargs))
+

@@ -22,6 +22,20 @@ cli.add_command(cam)
 cli.add_command(servo)
 
 
+@servo.command('move', short_help='Move a servo using pre-defined commands.')
+@click.option('-p', '--pin', type=int, default=7, help='The BOARD pin connected to the servo.')
+@click.option('-c', '--cycle', is_flag=True, help='Whether to cycle the given command sequence.')
+@click.argument(
+    'ops', type=str, nargs=-1
+)
+def move(ops, pin, cycle):
+    from rpicam.servo import Servo, parse_servo_op
+
+    ops = [parse_servo_op(x) for x in ops]
+    s = Servo(pin, verbose=True)
+    s.execute_sequence(ops, cycle=cycle)
+
+
 @cam.command('live', short_help='Display a live video stream.')
 @click.option('-s', '--spf', type=float, default=0.5, help='Seconds per frame.')
 def live(spf):
@@ -99,24 +113,9 @@ def timelapse(duration, spf, fps, resolution, outfile, servo_ops, servo_pin, cyc
         p = Platform(cam=cam, servos={'s': servo}, verbose=True)
         p.start_recording(**cam_args)
         p.submit_servo_sequence(servo_name='s', sequence=servo_ops, cycle=cycle_servo_ops)
-        p.poll_cam_result()
     else:
         cam.record(**cam_args)
 
-
-@servo.command('move', short_help='Move a servo using pre-defined commands.')
-@click.option('-p', '--pin', type=int, default=7, help='The BOARD pin connected to the servo.')
-@click.option('-c', '--cycle', is_flag=True, help='Whether to cycle the given command sequence.')
-@click.argument(
-    'ops', type=click.Choice(['pause', 'cw', 'ccw', 'noon', 'full_ccw', 'full_cw']), nargs=-1
-)
-def move(ops, pin, cycle):
-    from rpicam.servo import Servo, pause, full_ccw, full_cw, cw, ccw
-
-    ops_map = {'pause': pause, 'full_cw': full_cw, 'full_ccw': full_ccw, 'cw': cw, 'ccw': ccw}
-    ops = [ops_map[x] for x in ops if x in ops_map]
-    s = Servo(pin, verbose=True)
-    s.execute_sequence(ops, cycle=cycle)
 
 
 def main():
