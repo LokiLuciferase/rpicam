@@ -31,7 +31,7 @@ setup(
     description="PiCamera scripts",
     entry_points={
         'console_scripts': [
-            'rpicam=rpicam.cli:main',
+            'rpicam=rpicam.cli.main:main',
         ],
     },
     install_requires=requirements,
