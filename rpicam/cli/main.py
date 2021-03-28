@@ -34,9 +34,9 @@ cli.add_command(servo)
 @click_option('-c', '--cycle', is_flag=True, help='Whether to cycle the given command sequence.')
 @click.argument('ops', type=str, nargs=-1)
 def move(ops, pin, cycle):
-    from rpicam.servo import Servo, parse_servo_op
+    from rpicam.servo import Servo, ServoOpParser
 
-    ops = [parse_servo_op(x) for x in ops]
+    ops = [ServoOpParser.parse_servo_op(x) for x in ops]
     s = Servo(pin, verbose=True)
     s.execute_sequence(ops, cycle=cycle)
 
