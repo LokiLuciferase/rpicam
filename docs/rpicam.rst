@@ -8,21 +8,11 @@ Subpackages
    :maxdepth: 4
 
    rpicam.cams
+   rpicam.cli
    rpicam.gui
    rpicam.platform
    rpicam.servo
    rpicam.utils
-
-Submodules
-----------
-
-rpicam.cli module
------------------
-
-.. automodule:: rpicam.cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Module contents
 ---------------
