@@ -16,7 +16,7 @@ class Platform:
         self, cam: Cam, servos: Dict[Tuple[str, str], Servo] = None, verbose: bool = False
     ):
         self.cam = cam
-        self.servos = servos
+        self.servos = servos if servos is not None else {}
         self._logger = get_logger(self.__class__.__name__, verb=verbose)
         self._cam_in_q = Queue()
         self._cam_out_q = Queue()
