@@ -1,3 +1,5 @@
+from typing import Union
+from pathlib import Path
 from datetime import datetime
 from enum import Enum, auto
 from time import sleep
@@ -5,6 +7,7 @@ from time import sleep
 from picamera import PiCamera, Color
 
 from rpicam.utils.logging_utils import get_logger
+from rpicam.utils.telegram_poster import TelegramPoster
 
 
 class ExecPoint(Enum):
@@ -48,6 +51,21 @@ class AnnotateFrameWithDt(Callback):
             cam.annotate_text = None
 
 
+class PostToTg(Callback):
+    """
+    Posts the created file to Telegram using credentials stored in environment.
+    """
+    def __init__(self):
+        super().__init__(exec_at=ExecPoint.AFTER_CONVERT, priority=999)
+        self._poster = TelegramPoster()
+
+    def __call__(self, outfile: Union[str, Path], *args, **kwargs):
+        try:
+            self._poster.send_video(outfile)
+        except Exception:
+            pass
+
+
 class ExecutionTimeout(Callback):
     """
     Delays Execution until self.blocked is False.
@@ -61,7 +79,7 @@ class ExecutionTimeout(Callback):
         self.blocked = False
         self._logger = get_logger(self.__class__.__name__, verb=verbose)
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
         while self.blocked:
             if self.timeout >= self.MESSAGE_ABOVE:
                 self._logger.info(f'Execution blocked for {self.timeout} sec at {self.exec_at}.')

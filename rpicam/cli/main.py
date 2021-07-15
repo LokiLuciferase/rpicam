@@ -113,18 +113,23 @@ def _timelapse(
     servo_pin,
     cycle_servo_ops,
     init_angle,
+    post_to_tg,
     *args,
     **kwargs,
 ):
     from datetime import timedelta
-    from rpicam.cams import TimelapseCam, AnnotateFrameWithDt
+    from rpicam.cams import TimelapseCam, AnnotateFrameWithDt, PostToTg
     from rpicam.platform import Platform
     from rpicam.servo import Servo
     from rpicam.servo import ServoOpParser
     from rpicam.utils.state import State
 
+    callbacks = [AnnotateFrameWithDt()]
+    if post_to_tg:
+        callbacks.append(PostToTg())
+
     cam = TimelapseCam(
-        callbacks=[AnnotateFrameWithDt()],
+        callbacks=callbacks,
         verbose=True,
         camera_rotation=0,
         resolution=resolution,
@@ -203,6 +208,12 @@ def _timelapse(
     type=int,
     default=50,
     help='The fill percentage at which oldest files are beginning to be rotated out. Only used when --rotating.'
+)
+@click_option(
+    '--post_to_tg',
+    is_flag=True,
+    help='Whether to upload the finalized file to Telegram. chat ID to post to and API token must be saved in the'
+    ' environment as RPICAM_TG_CHAT_ID and RPICAM_TG_API_TOKEN, respectively.'
 )
 @default_servo_args
 def timelapse(out, rotating, rotate_fill_perc, *args, **kwargs):

@@ -5,4 +5,5 @@ from .callbacks import (
     Callback,
     AnnotateFrameWithDt,
     ExecutionTimeout,
+    PostToTg,
 )
