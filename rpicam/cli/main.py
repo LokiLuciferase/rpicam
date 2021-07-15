@@ -29,39 +29,59 @@ cli.add_command(cam)
 cli.add_command(servo)
 
 
+def default_servo_args(f):
+    f = click_option(
+        '--init_angle',
+        type=str,
+        default=0,
+        help='The initial angle for the servo. Valid choices are "load" from semi-persistent state (gets cleared at reboot), or the integer describing the angle.',
+    )(f)
+    return f
+
+
 @servo.command('move', short_help='Move a servo using pre-defined commands.')
 @click_option('-p', '--pin', type=int, default=7, help='The BOARD pin connected to the servo.')
 @click_option('-c', '--cycle', is_flag=True, help='Whether to cycle the given command sequence.')
+@default_servo_args
 @click.argument('ops', type=str, nargs=-1)
-def move(ops, pin, cycle):
+def move(ops, pin, cycle, init_angle, *args, **kwargs):
     from rpicam.servo import Servo, ServoOpParser
+    from rpicam.utils.state import State
 
     ops = [ServoOpParser.parse_servo_op(x) for x in ops]
-    s = Servo(pin, verbose=True)
+    s = Servo(pin, verbose=True, init_angle=init_angle)
     s.execute_sequence(ops, cycle=cycle)
+    s.write_servo_angle(State())
 
 
 @cam.command('live', short_help='Display a live video stream.')
 @click_option('-s', '--spf', type=float, default=0.5, help='Seconds per frame.')
 @click_option('--servo_pin_ad', type=int, default=7, help='Servo pin for AD axis.')
 @click_option('--servo_pin_ws', type=int, default=None, help='Servo pin for WS axis.')
-def live(spf, servo_pin_ad, servo_pin_ws):
+@default_servo_args
+def live(spf, servo_pin_ad, servo_pin_ws, init_angle, *args, **kwargs):
     from time import sleep
     from rpicam.cams import LivePreviewCam
     from rpicam.platform import Platform
-    from rpicam.servo import Servo
-    from rpicam.servo import ServoOpParser
+    from rpicam.servo import Servo, ServoOpParser
+    from rpicam.utils.state import State
 
     try:
         lpc = LivePreviewCam()
         lpc_args = dict(spf=spf)
         servos = dict(
-            servo_ad=Servo(servo_pin_ad, verbose=True, servo_name='A/D', on_invalid_angle='ignore')
+            servo_ad=Servo(
+                servo_pin_ad,
+                verbose=True,
+                servo_name='A/D',
+                on_invalid_angle='ignore',
+                init_angle=init_angle,
+            )
         )
         if servo_pin_ws:
             servo_name_ws = 'servo_ws'
             servos[servo_name_ws] = Servo(
-                servo_pin_ws, verbose=True, servo_name='W/S', on_invalid_angle='ignore'
+                servo_pin_ws, verbose=True, servo_name='W/S', on_invalid_angle='ignore', init_angle=init_angle
             )
         else:
             servo_name_ws = None
@@ -77,6 +97,10 @@ def live(spf, servo_pin_ad, servo_pin_ws):
 
     except KeyboardInterrupt:
         pass
+
+    finally:
+        for k in servos:
+            servos[k].write_servo_angle(State())
 
 
 @cam.command('timelapse', short_help='Create a timelapse video.')
@@ -117,12 +141,26 @@ def live(spf, servo_pin_ad, servo_pin_ws):
     is_flag=True,
     help='Whether to cycle the given servo operations during timelapse recording.',
 )
-def timelapse(duration, spf, fps, resolution, outfile, servo_ops, servo_pin, cycle_servo_ops):
+@default_servo_args
+def timelapse(
+    duration,
+    spf,
+    fps,
+    resolution,
+    outfile,
+    servo_ops,
+    servo_pin,
+    cycle_servo_ops,
+    init_angle,
+    *args,
+    **kwargs,
+):
     from datetime import timedelta
     from rpicam.cams import TimelapseCam, AnnotateFrameWithDt
     from rpicam.platform import Platform
     from rpicam.servo import Servo
     from rpicam.servo import ServoOpParser
+    from rpicam.utils.state import State
 
     cam = TimelapseCam(
         callbacks=[AnnotateFrameWithDt()],
@@ -137,7 +175,7 @@ def timelapse(duration, spf, fps, resolution, outfile, servo_ops, servo_pin, cyc
         outfile=outfile,
     )
     if servo_ops:
-        servo = Servo(servo_pin, verbose=True)
+        servo = Servo(servo_pin, verbose=True, init_angle=init_angle)
         servo_ops = servo_ops.split(' ')
         servo._logger.info(
             f'Will execute sequence: {servo_ops}{", cycling" if cycle_servo_ops else ""}'
@@ -148,6 +186,8 @@ def timelapse(duration, spf, fps, resolution, outfile, servo_ops, servo_pin, cyc
         p.start_recording(**cam_args)
         p.submit_servo_sequence(servo_name='s', sequence=servo_ops, cycle=cycle_servo_ops)
         p.poll_cam_result()
+        servo.write_servo_angle(State())
+
     else:
         cam.record(**cam_args)
 

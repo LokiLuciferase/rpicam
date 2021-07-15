@@ -1,10 +1,10 @@
-from typing import List
+from typing import List, Union
 import time
 import RPi.GPIO as GPIO
 
 from rpicam.servo.servo_ops import ServoOp, full_cw, full_ccw, noon, pause
 from rpicam.utils.logging_utils import get_logger
-
+from rpicam.utils.state import State
 
 GPIO.setmode(GPIO.BOARD)
 
@@ -12,15 +12,17 @@ GPIO.setmode(GPIO.BOARD)
 class Servo:
 
     PRECISION_THRESHOLD_ANGLE = 20
+    MOCK_INIT_ASSUMED_ANGLE = 90
 
     def __init__(
         self,
         board_pin: int,
         freq: float = 50,
         verbose: bool = False,
-        servo_name: str = None,
+        servo_name: str = 'A/D',
         hacked: bool = False,
         on_invalid_angle: str = 'raise',
+        init_angle: Union[int, str] = 0,
     ):
         self.pin = board_pin
         self.angle = None
@@ -31,6 +33,22 @@ class Servo:
         GPIO.setup(self.pin, GPIO.OUT)
         self._pwm = GPIO.PWM(self.pin, freq)
         self._initialize_servo_pos()
+        if init_angle == 'guess':
+            init_angle = self.MOCK_INIT_ASSUMED_ANGLE
+        elif init_angle == 'load':
+            state = State()
+            init_angle = state['servo', self._servo_name, 'angle']
+            if init_angle is None:
+                init_angle = self.MOCK_INIT_ASSUMED_ANGLE
+        elif isinstance(init_angle, str) and init_angle.isnumeric():
+            init_angle = int(init_angle)
+        elif isinstance(init_angle, int):
+            pass
+        else:
+            raise NotImplementedError(f'Invalid selection for init_angle: {init_angle}')
+        init_angle = int(init_angle)
+        if init_angle != 0:
+            self._run_servo_op(angle=init_angle)
 
     def __del__(self):
         self._pwm.stop()
@@ -136,6 +154,9 @@ class Servo:
                     break
         except KeyboardInterrupt:
             pass
+
+    def write_servo_angle(self, state: State):
+        state['servo', self._servo_name, 'angle'] = self.angle
 
 
 if __name__ == '__main__':
