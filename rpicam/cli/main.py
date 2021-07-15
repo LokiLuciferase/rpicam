@@ -103,46 +103,7 @@ def live(spf, servo_pin_ad, servo_pin_ws, init_angle, *args, **kwargs):
             servos[k].write_servo_angle(State())
 
 
-@cam.command('timelapse', short_help='Create a timelapse video.')
-@click_option(
-    '-d', '--duration', type=int, default=120, help='The total recording duration in min.'
-)
-@click_option('-s', '--spf', type=int, default=10, help='The time between frames in seconds.')
-@click_option(
-    '-f', '--fps', type=int, default=30, help='The number of frames per second in the final video.'
-)
-@click_option(
-    '-r',
-    '--resolution',
-    type=int,
-    nargs=2,
-    help='The resolution of the video (width, height) in px.',
-)
-@click_option(
-    '-o',
-    '--outfile',
-    type=click.Path(dir_okay=False, exists=False),
-    help='The path to write the output file to.',
-)
-@click_option(
-    '--servo_ops',
-    type=str,
-    default=None,
-    help='A space-delimited string of servo operations to perform during timelapse recording. Optional.',
-)
-@click_option(
-    '--servo_pin',
-    type=int,
-    default=7,
-    help='The pin on which the servo is connected. Only required if servo_ops are supplied.',
-)
-@click_option(
-    '--cycle_servo_ops',
-    is_flag=True,
-    help='Whether to cycle the given servo operations during timelapse recording.',
-)
-@default_servo_args
-def timelapse(
+def _timelapse(
     duration,
     spf,
     fps,
@@ -190,6 +151,74 @@ def timelapse(
 
     else:
         cam.record(**cam_args)
+
+
+
+@cam.command('timelapse', short_help='Create a timelapse video.')
+@click_option(
+    '-d', '--duration', type=int, default=120, help='The total recording duration in min.'
+)
+@click_option('-s', '--spf', type=int, default=10, help='The time between frames in seconds.')
+@click_option(
+    '-f', '--fps', type=int, default=30, help='The number of frames per second in the final video.'
+)
+@click_option(
+    '-r',
+    '--resolution',
+    type=int,
+    nargs=2,
+    help='The resolution of the video (width, height) in px.',
+)
+@click_option(
+    '-o',
+    '--out',
+    type=click.Path(exists=False),
+    help='The path to write the output to. If --rotating, this will be a directory, else a file.',
+)
+@click_option(
+    '--servo_ops',
+    type=str,
+    default=None,
+    help='A space-delimited string of servo operations to perform during timelapse recording. Optional.',
+)
+@click_option(
+    '--servo_pin',
+    type=int,
+    default=7,
+    help='The pin on which the servo is connected. Only required if servo_ops are supplied.',
+)
+@click_option(
+    '--cycle_servo_ops',
+    is_flag=True,
+    help='Whether to cycle the given servo operations during timelapse recording.',
+)
+@click_option(
+    '--rotating',
+    is_flag=True,
+    help='Whether to repeat this job whenever it ends, storing the resulting files in the output directory. '
+    'Oldest files are beginning to be rotated out when storage reaches critical levels.'
+)
+@click_option(
+    '--rotate_fill_perc',
+    type=int,
+    default=50,
+    help='The fill percentage at which oldest files are beginning to be rotated out. Only used when --rotating.'
+)
+@default_servo_args
+def timelapse(out, rotating, rotate_fill_perc, *args, **kwargs):
+    from pathlib import Path
+    from rpicam.utils.rotating_storage import RotatingStorage
+
+    if rotating:
+        outdir = Path(str(out)).stem
+        rot = RotatingStorage(outdir, file_ext='.mp4', file_prefix='timelapse', rotate_fill_perc=rotate_fill_perc)
+        try:
+            for filename in rot:
+                _timelapse(outfile=filename, *args, **kwargs)
+        except KeyboardInterrupt:
+            pass
+    else:
+        _timelapse(outfile=out, *args, **kwargs)
 
 
 def main():

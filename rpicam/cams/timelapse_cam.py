@@ -63,8 +63,8 @@ class TimelapseCam(Cam):
 
     def _record_stack(
         self,
-        sec_per_frame: int = 10,
-        t_start: datetime = datetime.now(),
+        t_start: datetime,
+        sec_per_frame: int,
         duration: timedelta = None,
         t_end: datetime = None,
         *args,
@@ -73,8 +73,8 @@ class TimelapseCam(Cam):
         """
         Captures a stack of images to be concatenated into a timelapse video.
 
+        :param t_start: Start time. Will sleep until this time to record the stack.
         :param sec_per_frame: Number of seconds between captured images
-        :param t_start: Start time - if given, sleep until this time
         :param duration: Duration of timelapse. Create new images until this time passes.
         :param t_end: Alternatively, pass end time directly.
         :param args: passed to PiCamera().capture()
@@ -160,7 +160,7 @@ class TimelapseCam(Cam):
         self,
         fps: int = 24,
         sec_per_frame: int = 10,
-        t_start: datetime = datetime.now(),
+        t_start: datetime = None,
         duration: timedelta = None,
         t_end: datetime = None,
         outfile: Union[Path, str] = None,
@@ -181,6 +181,12 @@ class TimelapseCam(Cam):
         :return: The path to the created video file.
         """
         self._execute_callbacks(loc=ExecPoint.BEFORE_RECORD)
+        if t_start is None:
+            t_start = datetime.now()
+        elif t_start < datetime.now():
+            raise RuntimeError('Recording start datetime is in the past.')
+        else:
+            pass
         stack_dir = self._record_stack(
             sec_per_frame=sec_per_frame,
             t_start=t_start,
