@@ -32,6 +32,7 @@ class Cam(ABC):
         tmpdir: Path = None,
         callbacks: List[Callback] = (),
         camera_rotation: int = 180,
+        preview: bool = False,
         # picamera settings
         *args,
         **kwargs,
@@ -43,9 +44,12 @@ class Cam(ABC):
             self._callbacks[k] = sorted(self._callbacks[k], key=lambda x: x.priority, reverse=True)
 
         self._execute_callbacks(ExecPoint.BEFORE_INIT)
+        self._preview = preview
         self.cam = PiCamera(*args, **kwargs)
         self.cam.rotation = camera_rotation
-        sleep(2)
+        if self._preview:
+            self.cam.start_preview()
+            sleep(2)
         self._logger = get_logger(self.__class__.__name__, verb=verbose)
         if tmpdir is None:
             self._tmpdir_holder = TemporaryDirectory(prefix=self.TMPDIR_PREFIX)
@@ -54,6 +58,8 @@ class Cam(ABC):
             self._tmpdir = Path(str(tmpdir))
 
     def __del__(self):
+        if self._preview:
+            self.stop_preview()
         self.cam.close()
 
     def _execute_callbacks(self, loc: ExecPoint, *args, **kwargs):
