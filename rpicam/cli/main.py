@@ -39,6 +39,16 @@ def default_servo_args(f):
     return f
 
 
+def default_cam_args(f):
+    f = click_option(
+        '--camera_rotation',
+        type=int,
+        default=0,
+        help='The rotation of the camera.'
+    )(f)
+    return f
+
+
 @servo.command('move', short_help='Move a servo using pre-defined commands.')
 @click_option('-p', '--pin', type=int, default=7, help='The BOARD pin connected to the servo.')
 @click_option('-c', '--cycle', is_flag=True, help='Whether to cycle the given command sequence.')
@@ -59,7 +69,8 @@ def move(ops, pin, cycle, init_angle, *args, **kwargs):
 @click_option('--servo_pin_ad', type=int, default=7, help='Servo pin for AD axis.')
 @click_option('--servo_pin_ws', type=int, default=None, help='Servo pin for WS axis.')
 @default_servo_args
-def live(spf, servo_pin_ad, servo_pin_ws, init_angle, *args, **kwargs):
+@default_cam_args
+def live(spf, servo_pin_ad, servo_pin_ws, init_angle, camera_rotation, *args, **kwargs):
     from time import sleep
     from rpicam.cams import LivePreviewCam
     from rpicam.platform import Platform
@@ -67,7 +78,7 @@ def live(spf, servo_pin_ad, servo_pin_ws, init_angle, *args, **kwargs):
     from rpicam.utils.state import State
 
     try:
-        lpc = LivePreviewCam()
+        lpc = LivePreviewCam(camera_rotation=camera_rotation)
         lpc_args = dict(spf=spf)
         servos = dict(
             servo_ad=Servo(
@@ -113,6 +124,7 @@ def _timelapse(
     servo_pin,
     cycle_servo_ops,
     init_angle,
+    camera_rotation,
     post_to_tg,
     *args,
     **kwargs,
@@ -131,7 +143,7 @@ def _timelapse(
     cam = TimelapseCam(
         callbacks=callbacks,
         verbose=True,
-        camera_rotation=0,
+        camera_rotation=camera_rotation,
         resolution=resolution,
     )
     cam_args = dict(
@@ -216,6 +228,7 @@ def _timelapse(
     ' environment as RPICAM_TG_CHAT_ID and RPICAM_TG_API_TOKEN, respectively.'
 )
 @default_servo_args
+@default_cam_args
 def timelapse(out, rotating, rotate_fill_perc, *args, **kwargs):
     from pathlib import Path
     from rpicam.utils.rotating_storage import RotatingStorage
