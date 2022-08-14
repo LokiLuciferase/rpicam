@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from picamera import PiCamera
 
 from rpicam.utils.logging_utils import get_logger
+from rpicam.utils.callback_handler import CallbackHandler
 from rpicam.cams.callbacks import ExecPoint, Callback
 
 
@@ -37,13 +38,8 @@ class Cam(ABC):
         *args,
         **kwargs,
     ):
-        self._callbacks = {}
-        for cb in callbacks:
-            self._callbacks.setdefault(cb.exec_at, []).append(cb)
-        for k, v in self._callbacks.items():
-            self._callbacks[k] = sorted(self._callbacks[k], key=lambda x: x.priority, reverse=True)
-
-        self._execute_callbacks(ExecPoint.BEFORE_INIT)
+        self._cbh = CallbackHandler(callbacks)
+        self._cbh.execute_callbacks(ExecPoint.BEFORE_INIT)
         self._preview = preview
         self.cam = PiCamera(*args, **kwargs)
         self.cam.rotation = camera_rotation
@@ -61,29 +57,6 @@ class Cam(ABC):
         if self._preview:
             self.stop_preview()
         self.cam.close()
-
-    def _execute_callbacks(self, loc: ExecPoint, *args, **kwargs):
-        """
-        Run all callbacks associated with loc in order.
-
-        :param loc: The execution point.
-        :param args: passed on to Callbacks for the given loc.
-        :param kwargs: passed on to Callbacks for the given loc.
-        :return:
-        """
-        if loc in self._callbacks:
-            for cb in self._callbacks[loc]:
-                cb(*args, **kwargs)
-
-    def _raise_with_callbacks(self, exc: Exception):
-        """
-        Raise the given exception after passing it through all Callbacks registered to run on error.
-
-        :param exc: The given exception.
-        :return:
-        """
-        self._execute_callbacks(ExecPoint.ON_EXCEPTION, exc=exc)
-        raise exc
 
     @abstractmethod
     def record(

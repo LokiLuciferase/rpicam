@@ -7,6 +7,7 @@ import shutil
 import ffmpeg
 
 from rpicam.cams.cam import Cam
+from rpicam.utils.stack_encoder import StackEncoder
 from rpicam.cams.callbacks import ExecPoint, Callback
 
 
@@ -37,7 +38,7 @@ class TimelapseCam(Cam):
         )
         self._capture_failover_strategy = capture_failover_strategy
         self._latest_frame_file: Optional[Path] = None
-        self._execute_callbacks(loc=ExecPoint.AFTER_INIT)
+        self._cbh.execute_callbacks(loc=ExecPoint.AFTER_INIT)
         self._conseq_overtime_count = 0
 
     def _capture_frame(self, stack_dir: Path, *args, **kwargs):
@@ -49,7 +50,7 @@ class TimelapseCam(Cam):
         :param kwargs: passed to PiCamera().capture()
         :return:
         """
-        self._execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
+        self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
         file_path = stack_dir / f'{datetime.now().timestamp()}.png'
         self.cam.capture(str(file_path), *args, **kwargs)
         if not file_path.is_file():
@@ -58,8 +59,8 @@ class TimelapseCam(Cam):
             elif self._capture_failover_strategy == 'skip':
                 pass
             elif self._capture_failover_strategy == 'raise':
-                self._raise_with_callbacks(RuntimeError(f'Could not capture frame: {file_path}'))
-        self._execute_callbacks(loc=ExecPoint.AFTER_FRAME_CAPTURE, cam=self.cam)
+                self._cbh.raise_with_callbacks(RuntimeError(f'Could not capture frame: {file_path}'))
+        self._cbh.execute_callbacks(loc=ExecPoint.AFTER_FRAME_CAPTURE, cam=self.cam)
 
     def _record_stack(
         self,
@@ -81,14 +82,14 @@ class TimelapseCam(Cam):
         :param kwargs: passed to PiCamera().capture()
         :return:
         """
-        self._execute_callbacks(loc=ExecPoint.BEFORE_STACK_CAPTURE)
+        self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_STACK_CAPTURE)
         self._logger.info('Setting up timelapse imaging.')
         if duration is not None and t_end is not None:
             self._logger.warn('Ignoring `t_end` as `duration` was also supplied.')
         elif duration is None and t_end is None:
             missing_arg = 'Must supply either `duration` or `t_end` must be supplied.'
             self._logger.error(missing_arg)
-            self._raise_with_callbacks(RuntimeError(missing_arg))
+            self._cbh.raise_with_callbacks(RuntimeError(missing_arg))
         if duration is not None:
             t_end = t_start + duration
 
@@ -114,7 +115,7 @@ class TimelapseCam(Cam):
                 )
 
                 if self._conseq_overtime_count >= TimelapseCam.MAX_CONSEQ_OVERTIME_TIL_ERR:
-                    self._raise_with_callbacks(RuntimeError(overtime_err))
+                    self._cbh.raise_with_callbacks(RuntimeError(overtime_err))
                 else:
                     self._logger.warning(overtime_err)
                     self._conseq_overtime_count += 1
@@ -124,63 +125,37 @@ class TimelapseCam(Cam):
                 self._conseq_overtime_count = 0
             now = datetime.now()
         self._logger.info('Finished timelapse imaging.')
-        self._execute_callbacks(loc=ExecPoint.AFTER_STACK_CAPTURE)
+        self._cbh.execute_callbacks(loc=ExecPoint.AFTER_STACK_CAPTURE)
         return stack_dir
-
-    def _convert_stack_to_video(self, stack_dir: Path, fps: int, outfile: Path = None) -> Path:
-        """
-        Convert a stack of images to a video file using ffmpeg-python.
-
-        :param stack_dir: The directory containing images in sorted order.
-        :param fps: The frames per second of the to be created video.
-        :param outfile: The path at which to create the video. Optional, else created in stack_dir.
-        :return: The path of the created video file.
-        """
-        self._execute_callbacks(loc=ExecPoint.BEFORE_CONVERT, stack_dir=stack_dir)
-        self._logger.info('Begin video conversion.')
-        outfile = Path(str(outfile)) if outfile is not None else stack_dir / 'out.mp4'
-        if outfile.is_file():
-            outfile.unlink()
-        (
-            ffmpeg.input(f'{str(stack_dir)}/*.png', pattern_type='glob', framerate=fps)
-            .output(str(outfile), pix_fmt='yuv420p')
-            .run(quiet=True)
-        )
-        if not outfile.is_file():
-            self._raise_with_callbacks(
-                RuntimeError('Error during processing: output file not found.')
-            )
-        for f in stack_dir.glob('*.png'):
-            f.unlink()
-        self._logger.info('Finished video conversion.')
-        self._execute_callbacks(loc=ExecPoint.AFTER_CONVERT, outfile=outfile)
-        return outfile
 
     def record(
         self,
+        outfile: Path,
         fps: int = 24,
         sec_per_frame: int = 10,
         t_start: datetime = None,
         duration: timedelta = None,
         t_end: datetime = None,
-        outfile: Union[Path, str] = None,
+        wait_for_encoder: bool = True,
         *args,
         **kwargs,
     ) -> Path:
         """
         Records a timelapse video using picamera and ffmpeg.
 
+        :param outfile: The path at which to create the video. Optional, else created in tmpdir.
         :param fps: The frames per second of the to be created video.
         :param sec_per_frame: Number of seconds between captured images
         :param t_start: Start time - if given, sleep until this time
         :param duration: Duration of timelapse. Create new images until this time passes.
         :param t_end: Alternatively, pass end time directly.
-        :param outfile: The path at which to create the video. Optional, else created in tmpdir.
+        :param wait_for_encoder: Whether to wait after capture for the video to be encoded. 
+                                 Else, immediately return the Path at which it will be created.
         :param args: passed to PiCamera().capture()
         :param kwargs: passed to PiCamera().capture()
         :return: The path to the created video file.
         """
-        self._execute_callbacks(loc=ExecPoint.BEFORE_RECORD)
+        self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_RECORD)
         if t_start is None:
             t_start = datetime.now()
         elif t_start < datetime.now():
@@ -195,6 +170,8 @@ class TimelapseCam(Cam):
             *args,
             **kwargs,
         )
-        ret = self._convert_stack_to_video(stack_dir=stack_dir, fps=fps, outfile=outfile)
-        self._execute_callbacks(loc=ExecPoint.AFTER_RECORD, ret=ret)
-        return ret
+        encoder = StackEncoder(callbacks=self._cbh.get_callbacks(exec_at=ExecPoint.AFTER_RECORD), stack_dir=stack_dir, fps=fps, outfile=outfile)
+        encoder.start()
+        if wait_for_encoder:
+            encoder.join()
+        return outfile

@@ -20,10 +20,10 @@ class LivePreviewCam(Cam):
         self._viewer = Viewer()
         self._img_queue = Queue()
         self._event = Event()
-        self._execute_callbacks(loc=ExecPoint.AFTER_INIT)
+        self._cbh.execute_callbacks(loc=ExecPoint.AFTER_INIT)
 
     def _create_frame(self, *args, **kwargs) -> Image:
-        self._execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
+        self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
         stream = BytesIO()
         t0 = time.time()
         self.cam.capture(stream, format='jpeg', use_video_port=True, *args, **kwargs)
@@ -31,7 +31,7 @@ class LivePreviewCam(Cam):
         self._logger.debug(f'Capturing took {t1 - t0} sec')
         stream.seek(0)
         img = Image.open(stream)
-        self._execute_callbacks(loc=ExecPoint.AFTER_FRAME_CAPTURE, cam=self.cam)
+        self._cbh.execute_callbacks(loc=ExecPoint.AFTER_FRAME_CAPTURE, cam=self.cam)
         return img
 
     def _frame_producer(self, spf: int, *args, **kwargs):
@@ -59,7 +59,7 @@ class LivePreviewCam(Cam):
         :param kwargs: any keyword arguments passed on to PiCamera.capture()
         :return: None
         """
-        self._execute_callbacks(loc=ExecPoint.BEFORE_RECORD)
+        self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_RECORD)
         self._event.clear()
         frame_producer = Thread(
             target=self._frame_producer,
@@ -69,4 +69,4 @@ class LivePreviewCam(Cam):
         ).start()
         self._viewer.view_image_queue(self._img_queue)
         self._event.set()
-        self._execute_callbacks(loc=ExecPoint.AFTER_RECORD)
+        self._cbh.execute_callbacks(loc=ExecPoint.AFTER_RECORD)

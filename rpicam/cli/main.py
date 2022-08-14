@@ -151,6 +151,7 @@ def _timelapse(
         duration=timedelta(minutes=duration),
         sec_per_frame=spf,
         outfile=outfile,
+        wait_for_encoder=False,
     )
     if servo_ops:
         servo = Servo(servo_pin, verbose=True, init_angle=init_angle)
