@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from abc import ABC, abstractmethod
 
-from picamera import PiCamera
+from picamera2 import Picamera2 as PiCamera, Preview
 
 from rpicam.utils.logging_utils import get_logger
 from rpicam.cams.callbacks import ExecPoint, Callback
@@ -32,6 +32,7 @@ class Cam(ABC):
         tmpdir: Path = None,
         callbacks: List[Callback] = (),
         camera_rotation: int = 180,
+        resolution = (1024, 768),
         preview: bool = False,
         # picamera settings
         *args,
@@ -44,12 +45,11 @@ class Cam(ABC):
             self._callbacks[k] = sorted(self._callbacks[k], key=lambda x: x.priority, reverse=True)
 
         self._execute_callbacks(ExecPoint.BEFORE_INIT)
-        self._preview = preview
         self.cam = PiCamera(*args, **kwargs)
+        self.cam.still_configuration.main.size = resolution
         self.cam.rotation = camera_rotation
-        if self._preview:
-            self.cam.start_preview()
-            sleep(2)
+        self.cam.configure('still')
+        self.cam.start()
         self._logger = get_logger(self.__class__.__name__, verb=verbose)
         if tmpdir is None:
             self._tmpdir_holder = TemporaryDirectory(prefix=self.TMPDIR_PREFIX)
@@ -58,9 +58,7 @@ class Cam(ABC):
             self._tmpdir = Path(str(tmpdir))
 
     def __del__(self):
-        if self._preview:
-            self.stop_preview()
-        self.cam.close()
+        self.cam.stop()
 
     def _execute_callbacks(self, loc: ExecPoint, *args, **kwargs):
         """

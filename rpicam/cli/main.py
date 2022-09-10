@@ -184,6 +184,7 @@ def _timelapse(
     '--resolution',
     type=int,
     nargs=2,
+    default=(1024, 768),
     help='The resolution of the video (width, height) in px.',
 )
 @click_option(

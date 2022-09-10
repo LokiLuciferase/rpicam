@@ -51,7 +51,7 @@ class TimelapseCam(Cam):
         """
         self._execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
         file_path = stack_dir / f'{datetime.now().timestamp()}.png'
-        self.cam.capture(str(file_path), *args, **kwargs)
+        self.cam.capture_file(str(file_path), *args, **kwargs)
         if not file_path.is_file():
             if self._capture_failover_strategy == 'heal' and self._latest_frame_file is not None:
                 shutil.copy(self._latest_frame_file, file_path)
@@ -108,6 +108,7 @@ class TimelapseCam(Cam):
             t1 = time()
             capture_dur = t1 - t0
             sleeptime = sec_per_frame - capture_dur
+            self._logger.info(f'Capture took {capture_dur}, sleeping for {sleeptime}')
             if sleeptime < 0:
                 overtime_err = (
                     f'sec_per_frame={sec_per_frame} but frame took {round(capture_dur, 2)} sec.'
@@ -118,10 +119,9 @@ class TimelapseCam(Cam):
                 else:
                     self._logger.warning(overtime_err)
                     self._conseq_overtime_count += 1
-                if sleeptime > 0:
-                    sleep(sleeptime)
             else:
                 self._conseq_overtime_count = 0
+                sleep(sleeptime)
             now = datetime.now()
         self._logger.info('Finished timelapse imaging.')
         self._execute_callbacks(loc=ExecPoint.AFTER_STACK_CAPTURE)

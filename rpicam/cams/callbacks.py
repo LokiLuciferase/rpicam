@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum, auto
 from time import sleep
 
-from picamera import PiCamera, Color
+from picamera2 import Picamera2 as PiCamera
 
 from rpicam.utils.logging_utils import get_logger
 from rpicam.utils.telegram_poster import TelegramPoster
@@ -44,7 +44,7 @@ class AnnotateFrameWithDt(Callback):
 
     def __call__(self, cam: PiCamera, *args, **kwargs):
         if self._fmt is not None:
-            cam.annotate_background = Color('black')
+            # cam.annotate_background = Color('black')
             cam.annotate_text = datetime.now().strftime(self._fmt)
         else:
             cam.annotate_background = None
