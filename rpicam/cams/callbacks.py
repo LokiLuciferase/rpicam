@@ -2,9 +2,11 @@ from typing import Union
 from pathlib import Path
 from datetime import datetime
 from enum import Enum, auto
+import time
 from time import sleep
 
-from picamera import PiCamera, Color
+from picamera2 import Picamera2 as PiCamera, MappedArray
+import cv2
 
 from rpicam.utils.logging_utils import get_logger
 from rpicam.utils.telegram_poster import TelegramPoster
@@ -41,14 +43,20 @@ class AnnotateFrameWithDt(Callback):
     def __init__(self, fmt: str = '%Y-%m-%dT%H:%M%S'):
         super().__init__(exec_at=ExecPoint.BEFORE_FRAME_CAPTURE, priority=-999)
         self._fmt = fmt
+        self._color = (0, 255, 0)
+        self._origin = (0, 30)
+        self._font = cv2.FONT_HERSHEY_SIMPLEX
+        self._scale = 1
+        self._thickness = 2
+
+    def _apply_timestamp(self, request):
+        timestamp = time.strftime(self._fmt)
+        with MappedArray(request, "main") as m:
+            cv2.putText(m.array, timestamp, self._origin, self._font, self._scale, self._color, self._thickness)
 
     def __call__(self, cam: PiCamera, *args, **kwargs):
         if self._fmt is not None:
-            cam.annotate_background = Color('black')
-            cam.annotate_text = datetime.now().strftime(self._fmt)
-        else:
-            cam.annotate_background = None
-            cam.annotate_text = None
+            cam.pre_callback = self._apply_timestamp
 
 
 class PostToTg(Callback):

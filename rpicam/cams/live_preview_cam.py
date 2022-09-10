@@ -15,8 +15,8 @@ class LivePreviewCam(Cam):
     Cam for producing a live stream in a GUI window.
     """
 
-    def __init__(self, camera_rotation: int = 0, *args, **kwargs):
-        super().__init__(camera_rotation=camera_rotation, *args, **kwargs)
+    def __init__(self, hvflip: bool = False, *args, **kwargs):
+        super().__init__(hvflip=hvflip, *args, **kwargs)
         self._viewer = Viewer()
         self._img_queue = Queue()
         self._event = Event()
