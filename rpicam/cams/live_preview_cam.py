@@ -26,7 +26,7 @@ class LivePreviewCam(Cam):
         self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
         stream = BytesIO()
         t0 = time.time()
-        self.cam.capture(stream, format='jpeg', use_video_port=True, *args, **kwargs)
+        self.cam.capture_file(stream, format='jpeg', *args, **kwargs)
         t1 = time.time()
         self._logger.debug(f'Capturing took {t1 - t0} sec')
         stream.seek(0)
