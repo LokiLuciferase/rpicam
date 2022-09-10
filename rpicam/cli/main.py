@@ -41,10 +41,9 @@ def default_servo_args(f):
 
 def default_cam_args(f):
     f = click_option(
-        '--camera_rotation',
-        type=int,
-        default=0,
-        help='The rotation of the camera.'
+        '--hvflip/--no-hvflip',
+        default=False,
+        help='Whether to rotate camera 180 degrees.'
     )(f)
     return f
 
@@ -70,7 +69,7 @@ def move(ops, pin, cycle, init_angle, *args, **kwargs):
 @click_option('--servo_pin_ws', type=int, default=None, help='Servo pin for WS axis.')
 @default_servo_args
 @default_cam_args
-def live(spf, servo_pin_ad, servo_pin_ws, init_angle, camera_rotation, *args, **kwargs):
+def live(spf, servo_pin_ad, servo_pin_ws, init_angle, hvflip, *args, **kwargs):
     from time import sleep
     from rpicam.cams import LivePreviewCam
     from rpicam.platform import Platform
@@ -78,7 +77,7 @@ def live(spf, servo_pin_ad, servo_pin_ws, init_angle, camera_rotation, *args, **
     from rpicam.utils.state import State
 
     try:
-        lpc = LivePreviewCam(camera_rotation=camera_rotation)
+        lpc = LivePreviewCam(hvflip=hvflip)
         lpc_args = dict(spf=spf)
         servos = dict(
             servo_ad=Servo(
@@ -124,7 +123,7 @@ def _timelapse(
     servo_pin,
     cycle_servo_ops,
     init_angle,
-    camera_rotation,
+    hvflip,
     post_to_tg,
     *args,
     **kwargs,
@@ -143,7 +142,7 @@ def _timelapse(
     cam = TimelapseCam(
         callbacks=callbacks,
         verbose=True,
-        camera_rotation=camera_rotation,
+        hvflip=hvflip,
         resolution=resolution,
     )
     cam_args = dict(

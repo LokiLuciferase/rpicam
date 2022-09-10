@@ -21,7 +21,7 @@ class TimelapseCam(Cam):
         verbose: bool = False,
         tmpdir: Path = None,
         capture_failover_strategy: str = 'skip',
-        camera_rotation: int = 0,
+        hvflip: bool = False,
         callbacks: List[Callback] = (),
         # picamera settings
         *args,
@@ -30,7 +30,7 @@ class TimelapseCam(Cam):
         super().__init__(
             verbose=verbose,
             tmpdir=tmpdir,
-            camera_rotation=camera_rotation,
+            hvflip=hvflip,
             callbacks=callbacks,
             *args,
             **kwargs,
@@ -108,7 +108,6 @@ class TimelapseCam(Cam):
             t1 = time()
             capture_dur = t1 - t0
             sleeptime = sec_per_frame - capture_dur
-            self._logger.info(f'Capture took {capture_dur}, sleeping for {sleeptime}')
             if sleeptime < 0:
                 overtime_err = (
                     f'sec_per_frame={sec_per_frame} but frame took {round(capture_dur, 2)} sec.'

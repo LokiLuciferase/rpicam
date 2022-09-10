@@ -1,6 +1,7 @@
 click>=7.0
 picamera2
 ffmpeg-python>=0.2
+opencv-python
 RPi.GPIO>=0.7.0
 pillow>=8.0.0
 requests
