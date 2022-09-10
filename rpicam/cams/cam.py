@@ -58,6 +58,7 @@ class Cam(ABC):
 
     def __del__(self):
         self.cam.stop()
+        self.cam.close()
 
     @abstractmethod
     def record(
