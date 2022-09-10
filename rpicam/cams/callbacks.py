@@ -44,7 +44,7 @@ class AnnotateFrameWithDt(Callback):
         super().__init__(exec_at=ExecPoint.BEFORE_FRAME_CAPTURE, priority=-999)
         self._fmt = fmt
         self._color = (0, 255, 0)
-        self._origin = (0, 30)
+        self._origin = (10, 30)
         self._font = cv2.FONT_HERSHEY_SIMPLEX
         self._scale = 1
         self._thickness = 2
