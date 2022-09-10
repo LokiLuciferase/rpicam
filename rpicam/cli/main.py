@@ -125,6 +125,7 @@ def _timelapse(
     init_angle,
     hvflip,
     post_to_tg,
+    tmpdir=None,
     *args,
     **kwargs,
 ):
@@ -144,6 +145,7 @@ def _timelapse(
         verbose=True,
         hvflip=hvflip,
         resolution=resolution,
+        tmpdir=tmpdir,
     )
     cam_args = dict(
         fps=fps,
@@ -232,14 +234,18 @@ def _timelapse(
 @default_cam_args
 def timelapse(out, rotating, rotate_fill_perc, *args, **kwargs):
     from pathlib import Path
+    import tempfile
     from rpicam.utils.rotating_storage import RotatingStorage
 
     if rotating:
+        # persistent tmpdir across iterations to allow for stack encoder to run in background thread
+        tmpdir_holder = tempfile.TemporaryDirectory(prefix='rpicam-timelapse-')
+        tmpdir = Path(str(tmpdir_holder.name))
         outdir = Path(str(out)).stem
         rot = RotatingStorage(outdir, file_ext='.mp4', file_prefix='timelapse', rotate_fill_perc=rotate_fill_perc)
         try:
             for filename in rot:
-                _timelapse(outfile=filename, *args, **kwargs)
+                _timelapse(tmpdir=tmpdir, outfile=filename, *args, **kwargs)
         except KeyboardInterrupt:
             pass
     else:

@@ -31,7 +31,7 @@ class StackEncoder(Process):
         (
             ffmpeg.input(f'{str(self._stack_dir)}/*.png', pattern_type='glob', framerate=self._fps)
             .output(str(outfile), pix_fmt='yuv420p')
-            .run(quiet=True)
+            .run(quiet=False)
         )
         if not outfile.is_file():
             self._cbh.raise_with_callbacks(
