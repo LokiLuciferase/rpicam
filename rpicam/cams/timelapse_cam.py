@@ -172,6 +172,7 @@ class TimelapseCam(Cam):
         encoder = StackEncoder(callbacks=self._cbh.get_callbacks(exec_at=ExecPoint.AFTER_CONVERT), stack_dir=stack_dir, fps=fps, outfile=outfile)
         encoder.start()
         if wait_for_encoder:
+            self._logger.info('Waiting for encoder to finish.')
             encoder.join()
         self._cbh.execute_callbacks(loc=ExecPoint.AFTER_RECORD)
         return outfile

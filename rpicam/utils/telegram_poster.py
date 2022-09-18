@@ -42,6 +42,6 @@ class TelegramPoster:
         }
         r = requests.post(url, files=files)
         if r.status_code != 200:
-            self._logger.error(f'Could not upload file. Exit code was {r.status_code}')
+            self._logger.error(f'Could not upload file. Exit code was {r.status_code}: "{r.text}"')
         else:
             self._logger.info(f'Successfully uploaded file to Telegram.')

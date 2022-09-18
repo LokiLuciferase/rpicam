@@ -126,6 +126,7 @@ def _timelapse(
     hvflip,
     post_to_tg,
     tmpdir=None,
+    wait_for_encoder=False,
     *args,
     **kwargs,
 ):
@@ -152,7 +153,7 @@ def _timelapse(
         duration=timedelta(minutes=duration),
         sec_per_frame=spf,
         outfile=outfile,
-        wait_for_encoder=False,
+        wait_for_encoder=wait_for_encoder,
     )
     if servo_ops:
         servo = Servo(servo_pin, verbose=True, init_angle=init_angle)
@@ -237,10 +238,11 @@ def timelapse(out, rotating, rotate_fill_perc, *args, **kwargs):
     import tempfile
     from rpicam.utils.rotating_storage import RotatingStorage
 
+    tmpdir_holder = tempfile.TemporaryDirectory(prefix='rpicam-timelapse-')
+    tmpdir = Path(str(tmpdir_holder.name))
+
     if rotating:
         # persistent tmpdir across iterations to allow for stack encoder to run in background thread
-        tmpdir_holder = tempfile.TemporaryDirectory(prefix='rpicam-timelapse-')
-        tmpdir = Path(str(tmpdir_holder.name))
         outdir = Path(str(out)).stem
         rot = RotatingStorage(outdir, file_ext='.mp4', file_prefix='timelapse', rotate_fill_perc=rotate_fill_perc)
         try:
@@ -249,7 +251,7 @@ def timelapse(out, rotating, rotate_fill_perc, *args, **kwargs):
         except KeyboardInterrupt:
             pass
     else:
-        _timelapse(outfile=out, *args, **kwargs)
+        _timelapse(tmpdir=tmpdir, outfile=out, wait_for_encoder=True, *args, **kwargs)
 
 
 def main():
