@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 from abc import ABC, abstractmethod
 
 from picamera2 import Picamera2 as PiCamera, Preview
-from libcamera import Transform
+from libcamera import Transform, controls
 
 from rpicam.utils.logging_utils import get_logger
 from rpicam.utils.callback_handler import CallbackHandler
@@ -48,6 +48,7 @@ class Cam(ABC):
             transform = Transform()
         self.cam = PiCamera(*args, **kwargs)
         self.config = self.cam.create_still_configuration(main={'size':resolution}, transform=transform)
+        self.cam.set_controls({'AwbMode': controls.AwbModeEnum.Indoor})
         self.cam.configure(self.config)
         self.cam.start()
         if tmpdir is None:
