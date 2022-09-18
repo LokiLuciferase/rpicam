@@ -19,7 +19,7 @@ class CallbackHandler:
     def add_callback(self, cb: Callback):
         self._callbacks.setdefault(cb.exec_at, []).append(cb)
         self._sort_callbacks()
-    
+
     def get_callbacks(self, exec_at: ExecPoint) -> Optional[List[Callback]]:
         return self._callbacks.get(exec_at)
 
@@ -43,6 +43,6 @@ class CallbackHandler:
         :param exc: The given exception.
         :return:
         """
-        self._execute_callbacks(ExecPoint.ON_EXCEPTION, exc=exc)
+        self.execute_callbacks(ExecPoint.ON_EXCEPTION, exc=exc)
         raise exc
 
