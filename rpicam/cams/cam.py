@@ -51,7 +51,11 @@ class Cam(ABC):
         self.cam.set_controls({'AwbMode': controls.AwbModeEnum.Indoor})
 
     def __del__(self):
-        self.cam.stop()
+        try:
+            self.cam.stop()
+            self.cam.stop_encoder()
+        except Exception:
+            pass
         self.cam.close()
 
     @abstractmethod
@@ -83,6 +87,7 @@ class VideoCam(Cam):
         main_resolution: Tuple[int, int] = (1024, 768),
         lores_resolution: Tuple[int, int] = (320, 240),
         encode_stream: str = 'lores',
+        do_start: bool = False,
         *args,
         **kwargs,
     ):
@@ -95,3 +100,5 @@ class VideoCam(Cam):
         )
         self.cam.align_configuration(self.config)
         self.cam.configure(self.config)
+        if do_start:
+            self.cam.start()

@@ -45,6 +45,14 @@ def default_cam_args(f):
         default=False,
         help='Whether to rotate camera 180 degrees.'
     )(f)
+    f = click_option(
+        '-r',
+        '--resolution',
+        type=int,
+        nargs=2,
+        default=(1024, 768),
+        help='The resolution of the video (width, height) in px.',
+    )(f)
     return f
 
 
@@ -69,7 +77,7 @@ def move(ops, pin, cycle, init_angle, *args, **kwargs):
 @click_option('--servo_pin_ws', type=int, default=None, help='Servo pin for WS axis.')
 @default_servo_args
 @default_cam_args
-def live(spf, servo_pin_ad, servo_pin_ws, init_angle, hvflip, *args, **kwargs):
+def live(spf, servo_pin_ad, servo_pin_ws, init_angle, hvflip, resolution, *args, **kwargs):
     from time import sleep
     from rpicam.cams import LivePreviewCam
     from rpicam.platform import Platform
@@ -77,7 +85,7 @@ def live(spf, servo_pin_ad, servo_pin_ws, init_angle, hvflip, *args, **kwargs):
     from rpicam.utils.state import State
 
     try:
-        lpc = LivePreviewCam(hvflip=hvflip)
+        lpc = LivePreviewCam(hvflip=hvflip, resolution=resolution)
         lpc_args = dict(spf=spf)
         servos = dict(
             servo_ad=Servo(
@@ -184,14 +192,6 @@ def _timelapse(
     '-f', '--fps', type=int, default=30, help='The number of frames per second in the final video.'
 )
 @click_option(
-    '-r',
-    '--resolution',
-    type=int,
-    nargs=2,
-    default=(1024, 768),
-    help='The resolution of the video (width, height) in px.',
-)
-@click_option(
     '-o',
     '--out',
     type=click.Path(exists=False),
@@ -253,6 +253,21 @@ def timelapse(out, rotating, rotate_fill_perc, *args, **kwargs):
             pass
     else:
         _timelapse(tmpdir=tmpdir, outfile=out, wait_for_encoder=True, *args, **kwargs)
+
+
+@cam.command('stream', short_help='Stream video to a UDP port.')
+@click_option(
+    '-a', '--address', type=str, default='232.255.23.23', help='The multicast address to stream to.'
+)
+@click_option(
+    '-p', '--port', type=int, default=10001, help='The UDP port to stream to.'
+)
+@default_cam_args
+def stream(address, port, resolution, hvflip, *args, **kwargs):
+    from rpicam.cams import SockStreamCam
+
+    cam = SockStreamCam(verbose=True, hvflip=hvflip, main_resolution=resolution)
+    cam.record(addr=address, port=port)
 
 
 def main():
