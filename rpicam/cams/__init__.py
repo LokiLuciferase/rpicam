@@ -6,4 +6,5 @@ from .callbacks import (
     AnnotateFrameWithDt,
     ExecutionTimeout,
     PostToTg,
+    SendExceptionToTg
 )

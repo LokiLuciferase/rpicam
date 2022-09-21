@@ -5,12 +5,12 @@ import time
 
 from PIL import Image
 
-from rpicam.cams.cam import Cam
+from rpicam.cams.cam import StillCam
 from rpicam.cams.callbacks import ExecPoint
 from rpicam.gui.viewer import Viewer
 
 
-class LivePreviewCam(Cam):
+class LivePreviewCam(StillCam):
     """
     Cam for producing a live stream in a GUI window.
     """

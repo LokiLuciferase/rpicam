@@ -45,3 +45,16 @@ class TelegramPoster:
             self._logger.error(f'Could not upload file. Exit code was {r.status_code}: "{r.text}"')
         else:
             self._logger.info(f'Successfully uploaded file to Telegram.')
+
+    def send_text(self, text: str):
+        """Post the given text to Telegram using stored credentials."""
+        url = f'{self.API_URL}/bot{self.api_token}/sendMessage'
+        data = {
+            'chat_id': self.chat_id,
+            'text': text
+        }
+        r = requests.post(url, data=data)
+        if r.status_code != 200:
+            self._logger.error(f'Could not send text. Exit code was {r.status_code}: "{r.text}"')
+        else:
+            self._logger.info(f'Successfully sent text to Telegram.')

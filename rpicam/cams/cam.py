@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from time import sleep
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -34,28 +34,21 @@ class Cam(ABC):
         tmpdir: Path = None,
         callbacks: List[Callback] = (),
         hvflip: bool = False,
-        resolution = (1024, 768),
-        # picamera settings
-        *args,
-        **kwargs,
     ):
-        self._logger = get_logger(self.__class__.__name__, verb=verbose)
-        self._cbh = CallbackHandler(callbacks)
-        self._cbh.execute_callbacks(ExecPoint.BEFORE_INIT)
-        if hvflip:
-            transform = Transform(vflip=True, hflip=True)
-        else:
-            transform = Transform()
-        self.cam = PiCamera(*args, **kwargs)
-        self.config = self.cam.create_still_configuration(main={'size':resolution}, transform=transform)
-        self.cam.set_controls({'AwbMode': controls.AwbModeEnum.Indoor})
-        self.cam.configure(self.config)
-        self.cam.start()
         if tmpdir is None:
             self._tmpdir_holder = TemporaryDirectory(prefix=self.TMPDIR_PREFIX)
             self._tmpdir = Path(str(self._tmpdir_holder.name))
         else:
             self._tmpdir = Path(str(tmpdir))
+        self._logger = get_logger(self.__class__.__name__, verb=verbose)
+        self._cbh = CallbackHandler(callbacks)
+        self._cbh.execute_callbacks(ExecPoint.BEFORE_INIT)
+        if hvflip:
+            self._transform = Transform(vflip=True, hflip=True)
+        else:
+            self._transform = Transform()
+        self.cam = PiCamera()
+        self.cam.set_controls({'AwbMode': controls.AwbModeEnum.Indoor})
 
     def __del__(self):
         self.cam.stop()
@@ -71,3 +64,34 @@ class Cam(ABC):
         Perform the requested camera operation.
         """
         pass
+
+
+class StillCam(Cam):
+    def __init__(self, resolution: Tuple[int, int] = (1024, 768), *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = self.cam.create_still_configuration(
+            main={'size': resolution}, transform=self._transform
+        )
+        self.cam.align_configuration(self.config)
+        self.cam.configure(self.config)
+        self.cam.start()
+
+
+class VideoCam(Cam):
+    def __init__(
+        self,
+        main_resolution: Tuple[int, int] = (1024, 768),
+        lores_resolution: Tuple[int, int] = (320, 240),
+        encode_stream: str = 'lores',
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.config = self.cam.create_video_configuration(
+            main={'size': main_resolution},
+            lores={'size': lores_resolution},
+            transform=self._transform,
+            encode=encode_stream
+        )
+        self.cam.align_configuration(self.config)
+        self.cam.configure(self.config)

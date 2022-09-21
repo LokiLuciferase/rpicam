@@ -6,12 +6,12 @@ import shutil
 
 import ffmpeg
 
-from rpicam.cams.cam import Cam
+from rpicam.cams.cam import StillCam
 from rpicam.utils.stack_encoder import StackEncoder
 from rpicam.cams.callbacks import ExecPoint, Callback
 
 
-class TimelapseCam(Cam):
+class TimelapseCam(StillCam):
 
     DEFAULT_SLEEP_DUR = 1  # sec
     MAX_CONSEQ_OVERTIME_TIL_ERR = 3

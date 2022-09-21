@@ -131,7 +131,7 @@ def _timelapse(
     **kwargs,
 ):
     from datetime import timedelta
-    from rpicam.cams import TimelapseCam, AnnotateFrameWithDt, PostToTg
+    from rpicam.cams import TimelapseCam, AnnotateFrameWithDt, PostToTg, SendExceptionToTg
     from rpicam.platform import Platform
     from rpicam.servo import Servo
     from rpicam.servo import ServoOpParser
@@ -140,6 +140,7 @@ def _timelapse(
     callbacks = [AnnotateFrameWithDt()]
     if post_to_tg:
         callbacks.append(PostToTg())
+        callbacks.append(SendExceptionToTg())
 
     cam = TimelapseCam(
         callbacks=callbacks,

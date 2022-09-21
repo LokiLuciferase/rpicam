@@ -74,6 +74,21 @@ class PostToTg(Callback):
             pass
 
 
+class SendExceptionToTg(Callback):
+    """
+    Posts the exception to Telegram using credentials stored in environment.
+    """
+    def __init__(self):
+        super().__init__(exec_at=ExecPoint.ON_EXCEPTION, priority=999)
+        self._poster = TelegramPoster()
+
+    def __call__(self, exc: Exception, *args, **kwargs):
+        try:
+            self._poster.send_text(f'rpicam has stopped: {exc}')
+        except Exception:
+            pass
+
+
 class ExecutionTimeout(Callback):
     """
     Delays Execution until self.blocked is False.
