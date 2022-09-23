@@ -7,14 +7,15 @@ import shutil
 import ffmpeg
 
 from rpicam.cams.cam import StillCam
+from rpicam.cams.sock_stream_cam import AutoSockStreamCam
 from rpicam.utils.stack_encoder import StackEncoder
 from rpicam.cams.callbacks import ExecPoint, Callback
 
 
-class TimelapseCam(StillCam):
+class TimelapseCam(AutoSockStreamCam):
 
     DEFAULT_SLEEP_DUR = 1  # sec
-    MAX_CONSEQ_OVERTIME_TIL_ERR = 3
+    MAX_CONSEQ_OVERTIME_TIL_ERR = 5
     TMPDIR_PREFIX = 'rpicam-timelapse-'
 
     def __init__(
@@ -52,7 +53,9 @@ class TimelapseCam(StillCam):
         """
         self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
         file_path = stack_dir / f'{datetime.now().timestamp()}.png'
-        self.cam.capture_file(str(file_path), *args, **kwargs)
+        req = self.cam.capture_request()
+        req.save('main', str(file_path))
+        req.release()
         if not file_path.is_file():
             if self._capture_failover_strategy == 'heal' and self._latest_frame_file is not None:
                 shutil.copy(self._latest_frame_file, file_path)
@@ -60,6 +63,7 @@ class TimelapseCam(StillCam):
                 pass
             elif self._capture_failover_strategy == 'raise':
                 self._cbh.raise_with_callbacks(RuntimeError(f'Could not capture frame: {file_path}'))
+        self._logger.debug(f'Captured file {file_path}.')
         self._cbh.execute_callbacks(loc=ExecPoint.AFTER_FRAME_CAPTURE, cam=self.cam)
 
     def _record_stack(
@@ -148,7 +152,7 @@ class TimelapseCam(StillCam):
         :param t_start: Start time - if given, sleep until this time
         :param duration: Duration of timelapse. Create new images until this time passes.
         :param t_end: Alternatively, pass end time directly.
-        :param wait_for_encoder: Whether to wait after capture for the video to be encoded. 
+        :param wait_for_encoder: Whether to wait after capture for the video to be encoded.
                                  Else, immediately return the Path at which it will be created.
         :param args: passed to PiCamera().capture()
         :param kwargs: passed to PiCamera().capture()

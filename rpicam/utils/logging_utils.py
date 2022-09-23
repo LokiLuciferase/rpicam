@@ -1,3 +1,4 @@
+import os
 import logging
 
 logging.addLevelName(logging.DEBUG, "\033[1;32m%s\033[1;0m" % logging.getLevelName(logging.DEBUG))
@@ -18,11 +19,13 @@ def get_logger(initname, verb=False):
     """
     logger = logging.getLogger(initname)
     if type(verb) is bool:
-        logger.setLevel(logging.INFO if verb else logging.WARNING)
+        verb_level = logging.INFO if os.environ.get('RPICAM_VVV') is None else logging.DEBUG
+        logger.setLevel(verb_level if verb else logging.WARNING)
     else:
+        verb_level=verb
         logger.setLevel(verb)  # TODO: hacky shit
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO if verb else logging.WARNING)
+    ch.setLevel(verb_level if verb else logging.WARNING)
     logstring = (
         '\033[1;32m[%(asctime)s]\033[1;0m \033[1m%(name)s\033[1;0m - %(levelname)s - %(message)s'
     )
