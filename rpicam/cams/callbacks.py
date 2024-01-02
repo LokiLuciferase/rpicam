@@ -5,7 +5,6 @@ from enum import Enum, auto
 import time
 from time import sleep
 
-from picamera2 import Picamera2 as PiCamera, MappedArray
 import cv2
 
 from rpicam.utils.logging_utils import get_logger
@@ -54,7 +53,7 @@ class AnnotateFrameWithDt(Callback):
         with MappedArray(request, "main") as m:
             cv2.putText(m.array, timestamp, self._origin, self._font, self._scale, self._color, self._thickness)
 
-    def __call__(self, cam: PiCamera, *args, **kwargs):
+    def __call__(self, cam, *args, **kwargs):
         if self._fmt is not None:
             cam.pre_callback = self._apply_timestamp
 

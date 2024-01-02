@@ -5,7 +5,7 @@ import time
 
 from PIL import Image
 
-from rpicam.cams.cam import StillCam
+from rpicam.cams.pi_cam import StillCam
 from rpicam.cams.callbacks import ExecPoint
 from rpicam.gui.viewer import Viewer
 

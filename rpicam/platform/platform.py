@@ -3,7 +3,7 @@ from queue import Queue, Empty
 from threading import Thread
 from time import sleep
 
-from rpicam.cams.cam import Cam
+from rpicam.cams.pi_cam import Cam
 from rpicam.servo.servo import Servo
 from rpicam.utils.logging_utils import get_logger
 

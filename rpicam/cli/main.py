@@ -79,7 +79,7 @@ def move(ops, pin, cycle, init_angle, *args, **kwargs):
 @default_cam_args
 def live(spf, servo_pin_ad, servo_pin_ws, init_angle, hvflip, resolution, *args, **kwargs):
     from time import sleep
-    from rpicam.cams import LivePreviewCam
+    from rpicam.cams.live_preview_cam import LivePreviewCam
     from rpicam.platform import Platform
     from rpicam.servo import Servo, ServoOpParser
     from rpicam.utils.state import State
@@ -138,11 +138,10 @@ def _timelapse(
     *args,
     **kwargs,
 ):
+    import platform
     from datetime import timedelta
-    from rpicam.cams import TimelapseCam, AnnotateFrameWithDt, PostToTg, SendExceptionToTg
-    from rpicam.platform import Platform
-    from rpicam.servo import Servo
-    from rpicam.servo import ServoOpParser
+    from rpicam.cams.timelapse_cam import TimelapseCam
+    from rpicam.cams.callbacks import AnnotateFrameWithDt, PostToTg, SendExceptionToTg
     from rpicam.utils.state import State
 
     callbacks = [AnnotateFrameWithDt()]
@@ -164,7 +163,11 @@ def _timelapse(
         outfile=outfile,
         wait_for_encoder=wait_for_encoder,
     )
-    if servo_ops:
+    if servo_ops and 'android' not in platform.uname().release:
+        from rpicam.platform import Platform
+        from rpicam.servo import Servo
+        from rpicam.servo import ServoOpParser
+
         servo = Servo(servo_pin, verbose=True, init_angle=init_angle)
         servo_ops = servo_ops.split(' ')
         servo._logger.info(
@@ -180,7 +183,6 @@ def _timelapse(
 
     else:
         cam.record(**cam_args)
-
 
 
 @cam.command('timelapse', short_help='Create a timelapse video.')
@@ -264,7 +266,7 @@ def timelapse(out, rotating, rotate_fill_perc, *args, **kwargs):
 )
 @default_cam_args
 def stream(address, port, resolution, hvflip, *args, **kwargs):
-    from rpicam.cams import SockStreamCam
+    from rpicam.cams.sock_stream_cam import SockStreamCam
 
     cam = SockStreamCam(verbose=True, hvflip=hvflip, main_resolution=resolution)
     cam.record(addr=address, port=port)

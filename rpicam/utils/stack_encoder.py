@@ -11,12 +11,20 @@ from rpicam.utils.logging_utils import get_logger
 
 
 class StackEncoder(Process):
-    def __init__(self, callbacks: List[Callback], stack_dir: Path, fps: int, outfile: Path):
+    def __init__(
+        self,
+        callbacks: List[Callback],
+        stack_dir: Path,
+        fps: int,
+        outfile: Path,
+        ftype: str = 'png',
+    ):
         super().__init__()
         self._cbh = CallbackHandler(callbacks)
         self._stack_dir = stack_dir
         self._fps = fps
         self._outfile = outfile
+        self._ftype = ftype
         self._logger = get_logger(initname=self.__class__.__name__)
 
     def run(self):
@@ -25,14 +33,25 @@ class StackEncoder(Process):
         """
         self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_CONVERT, stack_dir=self._stack_dir)
         self._logger.info('Begin video conversion.')
-        outfile = Path(str(self._outfile)) if self._outfile is not None else self._stack_dir / 'out.mp4'
+        outfile = (
+            Path(str(self._outfile)) if self._outfile is not None else self._stack_dir / 'out.mp4'
+        )
         if outfile.is_file():
             outfile.unlink()
-        (
-            ffmpeg.input(f'{str(self._stack_dir)}/*.png', pattern_type='glob', framerate=self._fps)
-            .output(str(outfile), pix_fmt='yuv420p')
-            .run(quiet=True)
-        )
+        try:
+            (
+                ffmpeg.input(
+                    f'{str(self._stack_dir)}/*.{self._ftype}',
+                    pattern_type='glob',
+                    framerate=self._fps,
+                )
+                .output(str(outfile), pix_fmt='yuv420p')
+                .run(quiet=False, capture_stderr=True, capture_stdout=True)
+            )
+        except ffmpeg.Error as e:
+            print('stdout:', e.stdout.decode('utf8'))
+            print('stderr:', e.stderr.decode('utf8'))
+            raise e
         if not outfile.is_file():
             self._cbh.raise_with_callbacks(
                 RuntimeError('Error during processing: output file not found.')

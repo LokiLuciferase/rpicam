@@ -1,19 +1,24 @@
-from typing import Optional, Union, List
+from typing import Optional, List
 from datetime import datetime, timedelta
 from time import sleep, time
 from pathlib import Path
+import platform
 import shutil
 
-import ffmpeg
+if 'android' in platform.uname().release:
+    from rpicam.cams.termux_cam import TermuxVideoCam as Parent
 
-from rpicam.cams.cam import StillCam
-from rpicam.cams.sock_stream_cam import AutoSockStreamCam
+    FTYPE = 'jpg'
+else:
+    from rpicam.cams.sock_stream_cam import AutoSockStreamCam as Parent
+
+    FTYPE = 'png'
+
 from rpicam.utils.stack_encoder import StackEncoder
 from rpicam.cams.callbacks import ExecPoint, Callback
 
 
-class TimelapseCam(AutoSockStreamCam):
-
+class TimelapseCam(Parent):
     DEFAULT_SLEEP_DUR = 1  # sec
     MAX_CONSEQ_OVERTIME_TIL_ERR = 5
     TMPDIR_PREFIX = 'rpicam-timelapse-'
@@ -53,16 +58,16 @@ class TimelapseCam(AutoSockStreamCam):
         """
         self._cbh.execute_callbacks(loc=ExecPoint.BEFORE_FRAME_CAPTURE, cam=self.cam)
         file_path = stack_dir / f'{datetime.now().timestamp()}.png'
-        req = self.cam.capture_request()
-        req.save('main', str(file_path))
-        req.release()
+        self.capture_single_frame(file_path)
         if not file_path.is_file():
             if self._capture_failover_strategy == 'heal' and self._latest_frame_file is not None:
                 shutil.copy(self._latest_frame_file, file_path)
             elif self._capture_failover_strategy == 'skip':
                 pass
             elif self._capture_failover_strategy == 'raise':
-                self._cbh.raise_with_callbacks(RuntimeError(f'Could not capture frame: {file_path}'))
+                self._cbh.raise_with_callbacks(
+                    RuntimeError(f'Could not capture frame: {file_path}')
+                )
         self._logger.debug(f'Captured file {file_path}.')
         self._cbh.execute_callbacks(loc=ExecPoint.AFTER_FRAME_CAPTURE, cam=self.cam)
 
@@ -173,7 +178,13 @@ class TimelapseCam(AutoSockStreamCam):
             *args,
             **kwargs,
         )
-        encoder = StackEncoder(callbacks=self._cbh.get_callbacks(exec_at=ExecPoint.AFTER_CONVERT), stack_dir=stack_dir, fps=fps, outfile=outfile)
+        encoder = StackEncoder(
+            callbacks=self._cbh.get_callbacks(exec_at=ExecPoint.AFTER_CONVERT),
+            stack_dir=stack_dir,
+            fps=fps,
+            outfile=outfile,
+            ftype=FTYPE
+        )
         encoder.start()
         if wait_for_encoder:
             self._logger.info('Waiting for encoder to finish.')

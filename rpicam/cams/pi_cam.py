@@ -1,18 +1,14 @@
-from typing import List, Tuple
-from time import sleep
+from typing import Tuple
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from abc import ABC, abstractmethod
 
-from picamera2 import Picamera2 as PiCamera, Preview
+from picamera2 import Picamera2 as PiCamera
 from libcamera import Transform, controls
 
-from rpicam.utils.logging_utils import get_logger
-from rpicam.utils.callback_handler import CallbackHandler
-from rpicam.cams.callbacks import ExecPoint, Callback
+from rpicam.utils.storage import CameraStorageMixin
 
 
-class Cam(ABC):
+class PiCameraMixin(ABC):
 
     """
     Cam base class to be extended with different functionalities. Comes with tmpdir and Callback
@@ -28,21 +24,7 @@ class Cam(ABC):
 
     TMPDIR_PREFIX = 'rpicam-cam-'
 
-    def __init__(
-        self,
-        verbose: bool = False,
-        tmpdir: Path = None,
-        callbacks: List[Callback] = (),
-        hvflip: bool = False,
-    ):
-        if tmpdir is None:
-            self._tmpdir_holder = TemporaryDirectory(prefix=self.TMPDIR_PREFIX)
-            self._tmpdir = Path(str(self._tmpdir_holder.name))
-        else:
-            self._tmpdir = Path(str(tmpdir))
-        self._logger = get_logger(self.__class__.__name__, verb=verbose)
-        self._cbh = CallbackHandler(callbacks)
-        self._cbh.execute_callbacks(ExecPoint.BEFORE_INIT)
+    def __init__(self, hvflip: bool = False):
         if hvflip:
             self._transform = Transform(vflip=True, hflip=True)
         else:
@@ -70,7 +52,7 @@ class Cam(ABC):
         pass
 
 
-class StillCam(Cam):
+class StillCam(CameraStorageMixin, PiCameraMixin):
     def __init__(self, resolution: Tuple[int, int] = (1024, 768), *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = self.cam.create_still_configuration(
@@ -81,7 +63,7 @@ class StillCam(Cam):
         self.cam.start()
 
 
-class VideoCam(Cam):
+class VideoCam(CameraStorageMixin, PiCameraMixin):
     def __init__(
         self,
         main_resolution: Tuple[int, int] = (1024, 768),
@@ -102,3 +84,13 @@ class VideoCam(Cam):
         self.cam.configure(self.config)
         if do_start:
             self.cam.start()
+
+    def capture_single_frame(self, file_path: Path):
+        req = self.cam.capture_request()
+        req.save('main', str(file_path))
+        req.release()
+
+
+class TermuxVideoCam(CameraStorageMixin):
+    def capture_single_frame(self, file_path: Path):
+        pass

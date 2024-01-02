@@ -6,7 +6,7 @@ import socket
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import FfmpegOutput
 
-from rpicam.cams.cam import VideoCam
+from rpicam.cams.pi_cam import VideoCam
 from rpicam.cams.callbacks import ExecPoint
 
 
